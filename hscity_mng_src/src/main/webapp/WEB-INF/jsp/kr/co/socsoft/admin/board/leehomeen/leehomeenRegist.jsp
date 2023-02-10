@@ -125,11 +125,11 @@
                 <div class="path-wrap">
                     <span class="home">홈</span>&nbsp;&nbsp;&gt;
                     <span class="path">게시판 관리</span>&nbsp;&nbsp;&gt;
-                    <span class="path">데이터도움말(자료관리)</span>&nbsp;&nbsp;&gt;
-                    <span class="now">데이터도움말(자료관리) 글쓰기</span>
+                    <span class="path">이호민(자료관리)</span>&nbsp;&nbsp;&gt;
+                    <span class="now">이호민(자료관리) 글쓰기</span>
                 </div>
                 <div class="clearfix">
-                    <p class="tit-page">데이터도움말(자료관리) 글쓰기</p>
+                    <p class="tit-page">이호민(자료관리) 글쓰기</p>
                 </div>
             </div>
             <!-- //상단 경로 및 페이지 타이틀 -->
@@ -165,7 +165,7 @@
                     <input id="fileDelList" type="hidden" name="fileDelList" />
 
                     <table class="tbl sr1 st1">
-                        <caption class="hide">데이터도움말(자료관리) 글쓰기 표</caption>
+                        <caption class="hide">이호민(자료관리) 글쓰기 표</caption>
                         <colgroup>
                             <col style="width:20%"/>
                             <col style="width:auto"/>

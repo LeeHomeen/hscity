@@ -867,8 +867,8 @@
               b.att_file_mng_seq file_att_file_mng_seq
             from (
               select
-                row_number() over(order by dh_seq asc) rownum,
-                dh_seq as seq,
+                row_number() over(order by hm_seq asc) rownum,
+                hm_seq as seq,
                 title,
                 contents,
                 rmk,
@@ -880,7 +880,7 @@
                 to_char(create_dt, 'YYYY-MM-DD') as create_dt,
                 to_char(update_dt, 'YYYY-MM-DD') as update_dt,
                 case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new
-              from hs_bbs_dh a
+              from hs_bbs_hm a
         ]]>
               <include refid="where_sql" />
         <![CDATA[
@@ -892,7 +892,7 @@
     <select id="selectleehomeenBoardListToCnt" parameterType="boardVO" resultType="int">
         <![CDATA[
             /* selectleehomeenBoardListToCnt */
-            select count(*) from hs_bbs_dh a
+            select count(*) from hs_bbs_hm a
         ]]>
             <include refid="where_sql" />
     </select>
@@ -900,7 +900,7 @@
         <![CDATA[
           /* selectleehomeenBoard */
           select
-              dh_seq as seq,
+              hm_seq as seq,
               title,
               contents,
               rmk,
@@ -917,29 +917,29 @@
               file_size file_file_size,
               file_seq file_file_seq,
               b.att_file_mng_seq file_att_file_mng_seq
-            from hs_bbs_dh a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
-            where a.dh_seq = #{seq}
+            from hs_bbs_hm a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            where a.hm_seq = #{seq}
             order by b.file_seq asc
         ]]>
     </select>
     <update id="updateleehomeenBoard" parameterType="boardVO">
         <![CDATA[
             /* updateleehomeenBoard */
-            update hs_bbs_dh set
+            update hs_bbs_hm set
               title = #{title},
               att_file_mng_seq = #{attFileMngSeq},
               contents = #{contents},
               rmk = #{rmk},
               update_id = #{updateId},
               update_dt = now()
-            where dh_seq = #{seq}
+            where hm_seq = #{seq}
         ]]>
     </update>
     <insert id="insertleehomeenBoard" parameterType="boardVO">
         <![CDATA[
           /* insertleehomeenBoard */
-          insert into hs_bbs_dh (
-            dh_seq,
+          insert into hs_bbs_hm (
+            hm_seq,
             title,
             contents,
             rmk,
@@ -960,13 +960,13 @@
           )
         ]]>
         <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
-            select nextval('hs_bbs_dh_seq')
+            select nextval('hs_bbs_hm_seq')
         </selectKey>
     </insert>
     <delete id="deleteleehomeenBoard" parameterType="boardVO">
         <![CDATA[
           /* deleteleehomeenBoard */
-          delete from hs_bbs_dh where dh_seq = #{seq}
+          delete from hs_bbs_hm where hm_seq = #{seq}
         ]]>
     </delete>
 </mapper>

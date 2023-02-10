@@ -44,14 +44,14 @@
         <div class="sec-right">
             <!-- 상단 경로 및 페이지 타이틀 -->
             <div class="top-bar">
-                <%-- 데이터도움말 --%>
+                <%-- 이호민 --%>
                 <div class="path-wrap">
                     <span class="home">홈</span>&nbsp;&nbsp;&gt;
                     <span class="path">게시판 관리</span>&nbsp;&nbsp;&gt;
-                    <span class="now">데이터도움말(자료관리)</span>
+                    <span class="now">이호민(자료관리)</span>
                 </div>
                 <div class="clearfix">
-                    <p class="tit-page">데이터도움말(자료관리)</p>
+                    <p class="tit-page">이호민(자료관리)</p>
                 </div>
             </div>
             <!-- //상단 경로 및 페이지 타이틀 -->
@@ -91,7 +91,7 @@
                 </div>
                 <!-- //표 상단 설정 영역 -->
                 <table class="tbl sr1 st1">
-                    <caption class="hide">데이터도움말(자료관리) 게시판 표</caption>
+                    <caption class="hide">이호민(자료관리) 게시판 표</caption>
                     <colgroup>
                         <col style="width:8%"/>
                         <col style="width:auto"/>
