@@ -1,0 +1,1308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.sales.service.SalesAnalsDao">
+	<!-- 인구/매출분석 _ 인구분석 -->
+	
+	<!-- 기간별 분석결과  : 구분의 동명칭으로인해 area, user로 분리-->
+	<select id="selectYearSalesList_area" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select 
+					case when div is null then '전체' else div end as div,
+					case when item is null then 0 else 1 end as num, 
+					case when item is null then '합계' else item end as item, 
+					COALESCE(sum(apop),0) as apop, 
+					COALESCE(sum(bpop),0) as bpop, 
+					COALESCE(sum(cpop),0) as cpop, 
+					COALESCE(sum(tot),0) as tot
+		from (
+			select
+				adm_nm as div, item, 
+				sum(a01) as apop, 
+				sum(a02) as bpop, 
+				sum(a03) as cpop, 
+				sum(cnt) as tot
+			from(
+				select re1.*, card.adong_nm as adm_nm
+	    		from(
+					select
+				        block_cd_n, item,
+				        case when gb = '01:내지인' then sum(cnt) end as a01,
+				        case when gb = '03:외지인' then sum(cnt) end as a03,
+				        case when gb = '02:인접지인' then sum(cnt) end as a02,
+				        sum(cnt) as cnt
+				    from
+				    (
+				        select block_cd_n,
+			        	   ]]>
+			        	   	<choose>
+		            			<when test="std == 'day'">ts_d as item,</when>
+		            			<otherwise>substring(ts_d, 1,6) as item,</otherwise>
+		            		</choose>
+			        	   <![CDATA[
+			               cln_gb as gb, 
+			               sum(amt_corr) as cnt
+				        from ( ${dytbl} ) sales
+				        where 1=1
+				         ]]>
+			        	   	<choose>
+		            			<when test="std == 'day'">
+				        			<if test="sday != null and sday != ''">
+				                		and ts_d <![CDATA[>=]]> #{sday} 
+				                	</if>
+				                	<if test="eday != null and eday != ''">
+					        			and ts_d <![CDATA[<=]]> #{eday}
+					        		</if>
+		            			</when>
+		            			<otherwise>
+		            				<if test="smonth != null and smonth != ''">
+				                		and ts_d <![CDATA[>=]]> #{smonth} 
+				                	</if>
+				                	<if test="emonth != null and emonth != ''">
+					        			and ts_d <![CDATA[<=]]> #{emonth}
+					        		</if>
+		            			</otherwise>
+		            		</choose>   	
+			        	<![CDATA[	 
+			        	and block_cd_n in ( 
+	           				select block_cd from skt_hs_small_block_a_area
+	           			)           
+				        group by block_cd_n, ts_d, cln_gb			        
+				    )part1
+				    group by block_cd_n, item, gb
+				    
+			    )re1 left join skt_hs_small_block_a_area card
+	    		on re1.block_cd_n = card.block_cd	    
+			)part2
+			group by adm_nm,item
+		 )part1
+    	group by grouping sets((num, div, item, apop, bpop, cpop, tot),(num, div),())		
+		]]>
+	</select>
+	
+	<select id="selectYearSalesList_user" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[		
+		select div, case when item is null then '합계' else item end as item, 
+				COALESCE(sum(apop),0) as apop, 
+				COALESCE(sum(bpop),0) as bpop, 
+				COALESCE(sum(cpop),0) as cpop, 
+				COALESCE(sum(tot),0) as tot
+		from (
+			select
+				'사용자' as div, item, 
+				sum(a01) as apop, 
+				sum(a02) as bpop, 
+				sum(a03) as cpop, 
+				sum(cnt) as tot
+			from(
+				
+				select
+			        item,
+			        case when gb = '01:내지인' then sum(cnt) end as a01,
+			        case when gb = '03:외지인' then sum(cnt) end as a03,
+			        case when gb = '02:인접지인' then sum(cnt) end as a02,
+			        sum(cnt) as cnt
+			    from
+			    (
+			        select 
+		        	   ]]>
+		        	   	<choose>
+	            			<when test="std == 'day'">ts_d as item,</when>
+	            			<otherwise>substring(ts_d, 1,6) as item,</otherwise>
+	            		</choose>
+		        	   <![CDATA[
+		               cln_gb as gb, 
+		               sum(amt_corr) as cnt
+			        from ( ${dytbl} ) sales
+			        where 1=1
+			         ]]>
+		        	   	<choose>
+	            			<when test="std == 'day'">
+			        			<if test="sday != null and sday != ''">
+			                		and ts_d <![CDATA[>=]]> #{sday} 
+			                	</if>
+			                	<if test="eday != null and eday != ''">
+				        			and ts_d <![CDATA[<=]]> #{eday}
+				        		</if>
+	            			</when>
+	            			<otherwise>
+	            				<if test="smonth != null and smonth != ''">
+			                		and ts_d <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_d <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	</otherwise>
+	            		</choose>   	
+		        	<![CDATA[	 
+		        	and block_cd_n in ( 
+	       				select block_cd 
+	       				from skt_hs_small_block_a 
+	       				where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	       			)           
+			        group by ts_d, cln_gb			        
+			    )part1
+			    group by item, gb
+			)part2
+			group by item	
+		)part1
+    	group by grouping sets((div, item, apop, bpop, cpop, tot),())			
+		]]>
+	</select>
+	
+	
+	<!-- 기간별 분석_국가기초구역  (bas_mgt_sn in 처리는 속도를 위해 처리 : 지정영역과 기초구역 현재화면 bounds안의 bas_mgt_sn값을 가져온다.)
+	-->
+	<select id="selectYearSales_map" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{GUBUN}  
+			AND b.adm_cd in (${DONGCD})
+			and st_intersects(a.geom,b.geom)
+		),
+		sh_card_hs_amt_demo_all AS(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from 
+			sh_card_hs_amt_demo_${GYEAR.substring(0,4)}		
+			where 1=1
+			and block_cd_n in ( 
+			        ]]>
+			        <choose>
+			        	<when test="ATYPE == 'area'">
+			        		SELECT block_cd FROM skt_hs_small_block_a_area
+			        	</when>
+			        	<otherwise>
+			        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+			        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			        	</otherwise>
+			        </choose>
+			        <![CDATA[
+			    GROUP BY block_cd				
+				
+			)
+			 ]]>
+        	   	<choose>
+           			<when test="STD == 'day'">
+           				and ts_d = #{GYEAR}
+           			</when>
+           			<otherwise>
+           				and ts_d <![CDATA[>=]]> #{GYEAR}||'01' 
+	        			and ts_d <![CDATA[<=]]> #{GYEAR}||'31'	        			
+           			</otherwise>
+           		</choose>   	
+        	<![CDATA[	
+			group by block_cd_n
+		), anals_result AS(
+			SELECT sn, cnt, 0 as min, wkt
+			FROM(				
+			    
+			    SELECT 
+			        block_cd as sn,
+			       	'POLYGON((' || array_to_string(  array_agg( 
+			        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+			        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+			    FROM(
+				 	SELECT block_cd, ST_Transform(poly, ${COORD}) as poly
+		   			FROM(
+			        	select block_cd, 
+			        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+			        	from (
+		       				SELECT block_cd, geom, adong_cd
+		       			]]>		       			
+		       				<choose>
+				        		<when test="ATYPE == 'area'">
+		       						FROM skt_hs_small_block_a_area
+		       					</when>
+		       					<otherwise>
+		       						FROM skt_hs_small_block_a
+		       					</otherwise>
+		       				</choose>
+		       			<![CDATA[ 
+		   					WHERE ST_Intersects( 
+		           				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		  						)part
+				        WHERE 
+				        ]]>
+				        <choose>
+				        	<when test="ATYPE == 'area'">
+				        		adong_cd in (${DONGCD})
+				        	</when>
+				        	<otherwise>
+				        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+				        	</otherwise>
+				        </choose>
+				        <![CDATA[
+		       	        order by block_cd 
+			    	)PART1
+			    )PART2
+			    GROUP BY block_cd 
+			    			    
+			 )result1
+			 left join
+			 (
+			 	select block_cd_n, cnt from sh_card_hs_amt_demo_all
+			 )result2
+			 on result1.sn = result2.block_cd_n
+		 )	
+		 select '' as sn, ${MAX} as tot,  ${MIN} as min, '' as wkt
+         union all                    
+         (select * from anals_result)
+		]]>
+	</select>
+	
+	<!-- 기간별 분석 범례정보-->
+	<select id="selectSaleYearLgdInfo" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select max(cnt) as max, min(cnt) as min
+		from(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from 
+			sh_card_hs_amt_demo_${gyear.substring(0,4)}		
+			where 1=1
+			and block_cd_n in (
+			        ]]>
+			        <choose>
+			        	<when test="atype == 'area'">
+			        		SELECT block_cd FROM skt_hs_small_block_a_area
+			        	</when>
+			        	<otherwise>
+			        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+			        		ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			        	</otherwise>
+			        </choose>
+			        <![CDATA[
+			    GROUP BY block_cd				
+				
+			)
+			 ]]>
+        	   	<choose>
+           			<when test="std == 'day'">
+           				and ts_d = #{gyear}
+           			</when>
+           			<otherwise>
+           				and ts_d <![CDATA[>=]]> #{gyear}||'01' 
+	        			and ts_d <![CDATA[<=]]> #{gyear}||'31'	        			
+           			</otherwise>
+           		</choose>   	
+        	<![CDATA[	
+			group by block_cd_n
+		)part1
+		]]>
+	</select>
+	
+	<!-- 성/연령별 분석 -->
+	<select id="selectGASalesList_area" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[	
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)		
+		select 
+			case when div is null then '전체' else div end as div, 
+		    item, 
+		    case when gb is null then '합계' else gb end as gb, 
+		    sum(mcnt) as mcnt, sum(wcnt) as wcnt, sum(tot) as tot
+		from(
+			select adm_nm as div, 
+		        gb as item,
+		        case when gb = 7 then gb || '0대이상' else gb || '0대' end as gb, 
+		        COALESCE(sum(mcnt),0) as mcnt, 
+		        COALESCE(sum(wcnt),0) as wcnt,
+		        (COALESCE(sum(mcnt),0) + COALESCE(sum(wcnt),0)) as tot
+		    from(
+		        select card.adong_nm as adm_nm,
+		              case when (gb = '01' or gb = '02') then 2 else
+		              case when (gb = '03' or gb = '04') then 3 else
+		              case when (gb = '05' or gb = '06') then 4 else
+		              case when (gb = '07' or gb = '08') then 5 else
+		              case when (gb = '09' or gb = '10') then 6 else
+		              case when (gb = '11') then 7 
+		              end end end end end end as gb,
+		
+		              case when ( (gb = '01' or gb = '02') and scd = 'M') then sum(cnt) else 
+		              case when ( (gb = '03' or gb = '04') and scd = 'M') then sum(cnt) else
+		              case when ( (gb = '05' or gb = '06') and scd = 'M') then sum(cnt) else
+		              case when ( (gb = '07' or gb = '08') and scd = 'M') then sum(cnt) else
+		              case when ( (gb = '09' or gb = '10') and scd = 'M') then sum(cnt) else 
+		              case when ( (gb = '11') and scd = 'M') then sum(cnt)
+		              end end end end end end as mcnt,
+		
+		              case when ( (gb = '01' or gb = '02') and scd = 'F') then sum(cnt) else 
+		              case when ( (gb = '03' or gb = '04') and scd = 'F') then sum(cnt) else
+		              case when ( (gb = '05' or gb = '06') and scd = 'F') then sum(cnt) else
+		              case when ( (gb = '07' or gb = '08') and scd = 'F') then sum(cnt) else
+		              case when ( (gb = '09' or gb = '10') and scd = 'F') then sum(cnt) else 
+		              case when ( (gb = '11') and scd = 'F') then sum(cnt)
+		              end end end end end end as wcnt
+		        from(
+		            select 		block_cd_n, 
+		                        age_gb as gb, 
+		                        sex_ccd scd,
+		                        sum(amt_corr) as cnt 
+		            from ( ${dytbl} ) sales
+		            where 1=1 
+		            ${query}
+		            ]]>
+		        	   	<choose>
+	            			<when test="std == 'day'">
+			        			<if test="sday != null and sday != ''">
+			                		and ts_d <![CDATA[>=]]> #{sday} 
+			                	</if>
+			                	<if test="eday != null and eday != ''">
+				        			and ts_d <![CDATA[<=]]> #{eday}
+				        		</if>
+	            			</when>
+	            			<otherwise>
+	            				<if test="smonth != null and smonth != ''">
+			                		and ts_d <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_d <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	</otherwise>
+	            		</choose>   	
+		        	<![CDATA[	 
+		        	and block_cd_n in ( 
+           				select block_cd from skt_hs_small_block_a_area
+           			)    
+		            group by block_cd_n, sex_ccd, age_gb
+		        )part1 left join skt_hs_small_block_a_area card 
+		        on part1.block_cd_n = card.block_cd 
+		        group by card.adong_nm, gb, scd
+		    )part2
+		    group by adm_nm, gb
+		)part3
+		group by grouping sets((div, item, gb), (div), ())
+		]]>
+	</select>
+	<!-- 성/연령별 분석_밀도 -->
+	<select id="selectGASalesList_user" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[		
+		select 
+			case when div is null then '전체' else div end as div, 
+		    item, 
+		    case when gb is null then '합계' else gb end as gb, 
+		    sum(mcnt) as mcnt, sum(wcnt) as wcnt, sum(tot) as tot
+		from(
+			select adm_nm as div, 
+		        gb as item,
+		        case when gb = 7 then gb || '0대이상' else gb || '0대' end as gb, 
+		        COALESCE(sum(mcnt),0) as mcnt, 
+		        COALESCE(sum(wcnt),0) as wcnt,
+		        (COALESCE(sum(mcnt),0) + COALESCE(sum(wcnt),0)) as tot
+		    from(
+		        select adm_nm,
+		              case when (gb = '01' or gb = '02') then 2 else
+		              case when (gb = '03' or gb = '04') then 3 else
+		              case when (gb = '05' or gb = '06') then 4 else
+		              case when (gb = '07' or gb = '08') then 5 else
+		              case when (gb = '09' or gb = '10') then 6 else
+		              case when (gb = '11') then 7 
+		              end end end end end end as gb,
+		
+		              case when ( (gb = '01' or gb = '02') and scd = 'M') then sum(cnt) else 
+		              case when ( (gb = '03' or gb = '04') and scd = 'M') then sum(cnt) else
+		              case when ( (gb = '05' or gb = '06') and scd = 'M') then sum(cnt) else
+		              case when ( (gb = '07' or gb = '08') and scd = 'M') then sum(cnt) else
+		              case when ( (gb = '09' or gb = '10') and scd = 'M') then sum(cnt) else 
+		              case when ( (gb = '11') and scd = 'M') then sum(cnt)
+		              end end end end end end as mcnt,
+		
+		              case when ( (gb = '01' or gb = '02') and scd = 'F') then sum(cnt) else 
+		              case when ( (gb = '03' or gb = '04') and scd = 'F') then sum(cnt) else
+		              case when ( (gb = '05' or gb = '06') and scd = 'F') then sum(cnt) else
+		              case when ( (gb = '07' or gb = '08') and scd = 'F') then sum(cnt) else
+		              case when ( (gb = '09' or gb = '10') and scd = 'F') then sum(cnt) else 
+		              case when ( (gb = '11') and scd = 'F') then sum(cnt)
+		              end end end end end end as wcnt
+		        from(
+		            select 		'사용자' as adm_nm, 
+		                        age_gb as gb, 
+		                        sex_ccd scd,
+		                        sum(amt_corr) as cnt 
+		            from ( ${dytbl} ) sales
+		            where 1=1 
+		             ${query}
+		             ]]>
+		        	   	<choose>
+	            			<when test="std == 'day'">
+			        			<if test="sday != null and sday != ''">
+			                		and ts_d <![CDATA[>=]]> #{sday} 
+			                	</if>
+			                	<if test="eday != null and eday != ''">
+				        			and ts_d <![CDATA[<=]]> #{eday}
+				        		</if>
+	            			</when>
+	            			<otherwise>
+	            				<if test="smonth != null and smonth != ''">
+			                		and ts_d <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_d <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	</otherwise>
+	            		</choose>   	
+		        	<![CDATA[	 
+		        	and block_cd_n in ( 
+	       				select block_cd 
+	       				from skt_hs_small_block_a 
+	       				where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	       			)     
+		            group by block_cd_n, sex_ccd, age_gb
+		        )part1 
+		        group by adm_nm, gb, scd
+		    )part2
+		    group by adm_nm, gb
+		)part3
+		group by grouping sets((div, item, gb), (div), ())			
+		]]>
+	</select>
+	<!-- 성/연령별 분석_격자 -->
+	<select id="selectGASales_map" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{GUBUN}  
+			AND b.adm_cd in (${DONGCD})
+			and st_intersects(a.geom,b.geom)
+		),
+		sh_card_hs_amt_demo_all AS(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from ( ${DYTBL} ) sales
+			where 1=1
+			and age_gb in ( select age_cd from view_card_age where chk = ${GYEAR})			
+			]]>
+				<if test='GENDER == "M"'>and sex_ccd = 'M'</if>
+				<if test='GENDER == "F"'>and sex_ccd = 'F'</if>
+        	   	<choose>
+        	   		<when test="STD == 'day'">
+	        			<if test="SDAY != null and SDAY != ''">
+	                		and ts_d <![CDATA[>=]]> #{SDAY} 
+	                	</if>
+	                	<if test="EDAY != null and EDAY != ''">
+		        			and ts_d <![CDATA[<=]]> #{EDAY}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="SMONTH != null and SMONTH != ''">
+	                		and ts_d <![CDATA[>=]]> #{SMONTH} 
+	                	</if>
+	                	<if test="EMONTH != null and EMONTH != ''">
+		        			and ts_d <![CDATA[<=]]> #{EMONTH}
+		        		</if>
+		        	</otherwise>           			
+           		</choose>   	
+        	<![CDATA[	
+			and block_cd_n in (
+			        ]]>
+			        <choose>
+			        	<when test="ATYPE == 'area'">
+			        		SELECT block_cd FROM skt_hs_small_block_a_area
+			        	</when>
+			        	<otherwise>
+			        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+			        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			        	</otherwise>
+			        </choose>
+			        <![CDATA[
+			    GROUP BY block_cd	
+			)
+			group by block_cd_n
+		), anals_result AS(
+			SELECT sn, cnt, 0 as min, wkt
+			FROM(
+			    SELECT 
+			        block_cd as sn,
+			       	'POLYGON((' || array_to_string(  array_agg( 
+			        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+			        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+			    FROM(
+				 	SELECT block_cd, ST_Transform(poly, ${COORD}) as poly
+		   			FROM(
+			        	select block_cd, 
+			        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+			        	from (
+		       				SELECT block_cd, geom, adong_cd 
+		       			]]>
+		       				<choose>
+					        	<when test="ATYPE == 'area'">
+					        		FROM skt_hs_small_block_a_area
+					        	</when>
+					        	<otherwise>
+					        		FROM skt_hs_small_block_a
+					        	</otherwise>
+				        	</choose>		       				
+		       			<![CDATA[		       				 
+		   					WHERE ST_Intersects( 
+		           				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		  						)part
+				        WHERE 
+				        ]]>
+				        <choose>
+				        	<when test="ATYPE == 'area'">
+				        		adong_cd in (${DONGCD})
+				        	</when>
+				        	<otherwise>
+				        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+				        	</otherwise>
+				        </choose>
+				        <![CDATA[
+		       	        order by block_cd 
+			    	)PART1
+			    )PART2
+			    GROUP BY block_cd 
+			    			    
+			 )result1
+			 left join
+			 (
+			 	select block_cd_n, cnt from sh_card_hs_amt_demo_all
+			 )result2
+			 on result1.sn = result2.block_cd_n
+		 )	
+		 select '' as sn, ${MAX} as tot, ${MIN} as min, '' as wkt
+         union all                    
+         (select * from anals_result)			
+		]]>
+	</select>
+	
+	<!-- 성연령별 분석 범례정보-->
+	<select id="selectSaleGALgdInfo" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select max(cnt) as max, min(cnt) as min
+		from(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from ( ${dytbl} ) sales
+			where 1=1
+			and age_gb in ( select age_cd from view_card_age where chk = ${gyear})			
+			]]>
+				<if test='gender == "M"'>and sex_ccd = 'M'</if>
+				<if test='gender == "F"'>and sex_ccd = 'F'</if>
+	       	   	<choose>
+	       	   		<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and ts_d <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and ts_d <![CDATA[<=]]> #{eday}
+		        		</if>
+	          			</when>
+	          			<otherwise>
+	          				<if test="smonth != null and smonth != ''">
+	                		and ts_d <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and ts_d <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>           			
+	          		</choose>   	
+	       	<![CDATA[	
+			and block_cd_n in (
+			        ]]>
+			        <choose>
+			        	<when test="atype == 'area'">
+			        		SELECT block_cd FROM skt_hs_small_block_a_area
+			        	</when>
+			        	<otherwise>
+			        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+			        		ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			        	</otherwise>
+			        </choose>
+			        <![CDATA[
+			    GROUP BY block_cd	
+			)
+			group by block_cd_n
+		)part1
+		]]>
+	</select>
+		
+	
+	<!-- 시간대별 분석결과   구분의 동명칭으로인해 area, user로 분리-->
+	<select id="selectTimeSalesList_area" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select 	case when div is null then '전체' else div end as div, 
+       		 	case when item is null then '합계' else item end as item, 
+        		COALESCE(sum(tot),0) as tot 
+		from ( 
+		    select adong_nm as div,
+		    	   case when item is null then 0 else 1 end as num, 
+		    	   item, sum(cnt) as tot 
+		    from( 
+		    	
+		        	select block_cd_n, tm as item, sum(amt_corr) as cnt 
+		            from ( ${dytbl} ) sales		           
+					where tm in (${time})
+					]]>
+		        	   	<choose>
+	            			<when test="std == 'day'">
+			        			<if test="sday != null and sday != ''">
+			                		and ts_d <![CDATA[>=]]> #{sday} 
+			                	</if>
+			                	<if test="eday != null and eday != ''">
+				        			and ts_d <![CDATA[<=]]> #{eday}
+				        		</if>
+	            			</when>
+	            			<otherwise>
+	            				<if test="smonth != null and smonth != ''">
+			                		and ts_d <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_d <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	</otherwise>
+	            		</choose>   	
+		        	<![CDATA[ 
+		        	and block_cd_n in ( select block_cd from skt_hs_small_block_a_area) 
+		            group by block_cd_n, tm 
+		        
+		    )re1 left join skt_hs_small_block_a_area card 
+		    on re1.block_cd_n = card.block_cd 
+			group by adong_nm,item 
+		)part1 
+		group by grouping sets((num, div, item, tot),(num, div), ())
+		order by num, div, item
+		]]>
+	</select>
+	
+	<select id="selectTimeSalesList_user" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select  case when div is null then '전체' else div end as div,
+		        case when item is null then '합계' else item end as item, 
+		        COALESCE(sum(tot),0) as tot 
+		from ( 
+		    select '사용자' as div, tm as item, sum(amt_corr) as tot 
+		    from ( ${dytbl} ) sales		    
+		    where tm in (${time})
+		    ]]>
+        	   	<choose>
+           			<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and ts_d <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and ts_d <![CDATA[<=]]> #{eday}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="smonth != null and smonth != ''">
+	                		and ts_d <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and ts_d <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>
+           		</choose>   	
+        	<![CDATA[  
+		    and block_cd_n in ( 
+   				select block_cd 
+   				from skt_hs_small_block_a 
+   				where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+   			)   
+		    group by tm 
+		)part1 
+		group by grouping sets((div, item, tot),(div), ()) 
+		]]>
+	</select>
+	
+	<!-- 시간대별 분석_국가지형-->
+	<select id="selectTimeSales_map" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{GUBUN}  
+			AND b.adm_cd in (${DONGCD})
+			and st_intersects(a.geom,b.geom)
+		),
+		sh_card_hs_amt_time_all AS(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from ( ${DYTBL} ) sales
+			where 
+			block_cd_n in ( 
+		        ]]>
+		        <choose>
+		        	<when test="ATYPE == 'area'">
+		        		SELECT block_cd FROM skt_hs_small_block_a_area
+		        	</when>
+		        	<otherwise>
+		        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+		        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+		        	</otherwise>
+		        </choose>
+		        <![CDATA[
+			    GROUP BY block_cd		
+				
+			)			
+			and tm = #{GYEAR}
+			 ]]>
+        	   	<choose>
+           			<when test="STD == 'day'">
+	        			<if test="SDAY != null and SDAY != ''">
+	                		and ts_d <![CDATA[>=]]> #{SDAY} 
+	                	</if>
+	                	<if test="EDAY != null and EDAY != ''">
+		        			and ts_d <![CDATA[<=]]> #{EDAY}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="SMONTH != null and SMONTH != ''">
+	                		and ts_d <![CDATA[>=]]> #{SMONTH} 
+	                	</if>
+	                	<if test="EMONTH != null and EMONTH != ''">
+		        			and ts_d <![CDATA[<=]]> #{EMONTH}
+		        		</if>
+		        	</otherwise>
+           		</choose>   	
+        	<![CDATA[	
+			group by block_cd_n
+		), anals_result AS(
+			SELECT sn, cnt, 0 as min, wkt
+			FROM(
+				SELECT 
+			        block_cd as sn,
+			       	'POLYGON((' || array_to_string(  array_agg( 
+			        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+			        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+			    FROM(
+			    	 SELECT block_cd, ST_Transform(poly, ${COORD}) as poly
+	    			FROM(
+			        	select block_cd, 
+			        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+			        	from (
+	        				SELECT block_cd, geom, adong_cd
+	        			]]> 
+	        			<choose>
+				        	<when test="ATYPE == 'area'">
+				        		FROM skt_hs_small_block_a_area
+				        	</when>
+				        	<otherwise>
+				        		FROM skt_hs_small_block_a
+				        	</otherwise>
+				        </choose>	        				
+	        			<![CDATA[ 
+	    					WHERE ST_Intersects( 
+	            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+	   						)part
+				        WHERE 
+				        ]]>
+				        <choose>
+				        	<when test="ATYPE == 'area'">
+				        		adong_cd in (${DONGCD})
+				        	</when>
+				        	<otherwise>
+				        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+				        	</otherwise>
+				        </choose>
+				        <![CDATA[
+	        	        order by block_cd 
+			    	)PART1
+			    )PART2
+			    GROUP BY block_cd 
+			 )result1
+			 left join
+			 (
+			 	select block_cd_n, cnt from sh_card_hs_amt_time_all
+			 )result2
+			 on result1.sn = result2.block_cd_n
+		 )	
+		 select '' as sn, ${MAX} as tot, ${MIN} as min, '' as wkt
+         union all                    
+         (select * from anals_result)
+		]]>
+	</select>
+	
+	<!-- 시간대별 분석 범례정보-->
+	<select id="selectSaleTimeLgdInfo" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select max(cnt) as max, min(cnt) as min
+		from(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from ( ${dytbl} ) sales
+			where 
+			block_cd_n in (				
+				 
+		        ]]>
+		        <choose>
+		        	<when test="atype == 'area'">
+		        		SELECT block_cd FROM skt_hs_small_block_a_area
+		        	</when>
+		        	<otherwise>
+		        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+		        		ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		        	</otherwise>
+		        </choose>
+		        <![CDATA[
+			    GROUP BY block_cd		
+				
+			)			
+			and tm = #{gyear}
+			 ]]>
+        	   	<choose>
+           			<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and ts_d <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and ts_d <![CDATA[<=]]> #{eday}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="smonth != null and smonth != ''">
+	                		and ts_d <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and ts_d <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>
+           		</choose>   	
+        	<![CDATA[	
+			group by block_cd_n
+		)part1
+		]]>
+	</select>
+	
+	
+	<!-- 매출분석_업종별분석 지역 -->
+	<select id="selectCtgSalesList_area" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select case when div is null then '전체' else div end as div, 
+		   lclas, mclas, item, 
+		   case when lnm is null then '합계' else lnm end as lnm, mnm, snm, 
+	       COALESCE(sum(tot),0) as tot
+		from(
+		    select  part3.*, 
+		            lcode.lclas_nm as lnm,
+		            mcode.mlsfc_nm as mnm,
+		            scode.sclas_nm as snm
+		    from(
+		        select 
+		                adong_nm as div, 
+		                substring(gb, 1, 3) as lclas,
+		                substring(gb, 1, 5) as mclas,
+		                gb as item, 
+		                sum(cnt) as tot
+		        from(
+		            select part1.block_cd_n, part1.gb, part1.cnt, card.adong_nm
+		            from(
+	                        select  block_cd_n,             		
+	                                s_gb_cd as gb,
+	                                sum(amt_corr) as cnt 
+	                        from ( ${dytbl} ) sales
+	                        where 1=1 
+                        	]]>
+				        	   	<choose>
+			            			<when test="std == 'day'">
+					        			<if test="sday != null and sday != ''">
+					                		and ts_d <![CDATA[>=]]> #{sday} 
+					                	</if>
+					                	<if test="eday != null and eday != ''">
+						        			and ts_d <![CDATA[<=]]> #{eday}
+						        		</if>
+				           			</when>
+				           			<otherwise>
+				           				<if test="smonth != null and smonth != ''">
+					                		and ts_d <![CDATA[>=]]> #{smonth} 
+					                	</if>
+					                	<if test="emonth != null and emonth != ''">
+						        			and ts_d <![CDATA[<=]]> #{emonth}
+						        		</if>
+						        	</otherwise>
+			            		</choose>   	
+			        		<![CDATA[	 
+	        				and block_cd_n in ( 
+          							select block_cd from skt_hs_small_block_a_area
+          						)         
+                            and s_gb_cd like #{ctg}
+                        	group by block_cd_n, s_gb_cd 
+		            )part1  
+		            left join skt_hs_small_block_a_area card 
+		            on part1.block_cd_n = card.block_cd
+		        )part2
+		        group by adong_nm, gb
+		    )part3 
+		    left join (select lclas_cd, lclas_nm from sh_card_hs_induty_code group by lclas_cd, lclas_nm) lcode
+		    on part3.lclas = lcode.lclas_cd
+		    left join (select mlsfc_cd, mlsfc_nm from sh_card_hs_induty_code group by mlsfc_cd, mlsfc_nm) mcode
+		    on part3.mclas = mcode.mlsfc_cd
+		    left join sh_card_hs_induty_code scode
+		    on part3.item = scode.sclas_cd
+		)part4
+		group by grouping sets((div, lclas, mclas, item, lnm, mnm, snm, tot),(div),()) 
+		]]>
+	</select>
+	
+	<!-- 매출분석_업종별분석 사용자지정 -->
+	<select id="selectCtgSalesList_user" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select case when div is null then '전체' else div end as div, 
+	   		lclas, mclas, item, 
+	   		case when lnm is null then '합계' else lnm end as lnm, mnm, snm, 
+       		COALESCE(sum(tot),0) as tot
+		from(
+		    select  part2.*, 
+		            lcode.lclas_nm as lnm,
+		            mcode.mlsfc_nm as mnm,
+		            scode.sclas_nm as snm
+		    from(
+		        select 
+		                adm_nm as div, 
+		                substring(gb, 1, 3) as lclas,
+		                substring(gb, 1, 5) as mclas,
+		                gb as item, 
+		                sum(cnt) as tot
+		        from(
+		          
+		                    select  '사용자' as adm_nm,             		
+		                            s_gb_cd as gb,
+		                            sum(amt_corr) as cnt 
+		                    from ( ${dytbl} ) sales		                    
+		                    where 1=1 
+	                    	]]>
+				        	   	<choose>
+			            			<when test="std == 'day'">
+					        			<if test="sday != null and sday != ''">
+					                		and ts_d <![CDATA[>=]]> #{sday} 
+					                	</if>
+					                	<if test="eday != null and eday != ''">
+						        			and ts_d <![CDATA[<=]]> #{eday}
+						        		</if>
+				           			</when>
+				           			<otherwise>
+				           				<if test="smonth != null and smonth != ''">
+					                		and ts_d <![CDATA[>=]]> #{smonth} 
+					                	</if>
+					                	<if test="emonth != null and emonth != ''">
+						        			and ts_d <![CDATA[<=]]> #{emonth}
+						        		</if>
+						        	</otherwise>
+			            		</choose>   	
+				        	<![CDATA[	 
+				        	and block_cd_n in ( 
+			       				select block_cd 
+			       				from skt_hs_small_block_a 
+			       				where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			       			)
+	                        and s_gb_cd like #{ctg}
+		                    group by block_cd_n, s_gb_cd 
+		            )part1  
+		            
+		        group by adm_nm, gb
+		    )part2 
+		    left join (select lclas_cd, lclas_nm from sh_card_hs_induty_code group by lclas_cd, lclas_nm) lcode
+		    on part2.lclas = lcode.lclas_cd
+		    left join (select mlsfc_cd, mlsfc_nm from sh_card_hs_induty_code group by mlsfc_cd, mlsfc_nm) mcode
+		    on part2.mclas = mcode.mlsfc_cd
+		    left join sh_card_hs_induty_code scode
+		    on part2.item = scode.sclas_cd
+		)part3
+		group by grouping sets((div, lclas, mclas, item, lnm, mnm, snm, tot),(div),())			
+		]]>
+	</select>
+	
+	<!-- 매출분석_업종별분석 지도 -->
+	<select id="selectCtgSales_map" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{GUBUN}  
+			AND b.adm_cd in (${DONGCD})
+			and st_intersects(a.geom,b.geom)
+		),
+		sh_card_hs_amt_demo_all AS(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from ( ${DYTBL} ) sales
+			where 1=1
+			and s_gb_cd = #{GYEAR}
+			]]>
+        	   	<choose>
+           			<when test="STD == 'day'">
+	        			<if test="SDAY != null and SDAY != ''">
+	                		and ts_d <![CDATA[>=]]> #{SDAY} 
+	                	</if>
+	                	<if test="EDAY != null and EDAY != ''">
+		        			and ts_d <![CDATA[<=]]> #{EDAY}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="SMONTH != null and SMONTH != ''">
+	                		and ts_d <![CDATA[>=]]> #{SMONTH} 
+	                	</if>
+	                	<if test="EMONTH != null and EMONTH != ''">
+		        			and ts_d <![CDATA[<=]]> #{EMONTH}
+		        		</if>
+		        	</otherwise>
+           		</choose>   	
+        	<![CDATA[	
+			and block_cd_n in (
+			        ]]>
+			        <choose>
+			        	<when test="ATYPE == 'area'">
+			        		SELECT block_cd FROM skt_hs_small_block_a_area 
+			        	</when>
+			        	<otherwise>
+			        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+			        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			        	</otherwise>
+			        </choose>
+			        <![CDATA[
+			    GROUP BY block_cd	
+			)
+			group by block_cd_n
+		), anals_result AS(
+			SELECT sn, cnt, 0 as min, wkt
+			FROM(				
+			    
+			    SELECT 
+			        block_cd as sn,
+			       	'POLYGON((' || array_to_string(  array_agg( 
+			        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+			        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+			    FROM(
+				 	SELECT block_cd, ST_Transform(poly, ${COORD}) as poly
+		   			FROM(
+			        	select block_cd, 
+			        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+			        	from (
+		       				SELECT block_cd, geom, adong_cd 
+		       			]]>
+		       			<choose>
+				        	<when test="ATYPE == 'area'">
+				        		FROM skt_hs_small_block_a_area
+				        	</when>
+				        	<otherwise>
+				        		FROM skt_hs_small_block_a
+				        	</otherwise>
+				        </choose>		       				
+		       			<![CDATA[ 
+		   					WHERE ST_Intersects( 
+		           				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		  						)part
+				        WHERE 
+				        ]]>
+				        <choose>
+				        	<when test="ATYPE == 'area'">
+				        		adong_cd in (${DONGCD})
+				        	</when>
+				        	<otherwise>
+				        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+				        	</otherwise>
+				        </choose>
+				        <![CDATA[
+		       	        order by block_cd 
+			    	)PART1
+			    )PART2
+			    GROUP BY block_cd 
+			    			    
+			 )result1
+			 left join
+			 (
+			 	select block_cd_n, cnt from sh_card_hs_amt_demo_all
+			 )result2
+			 on result1.sn = result2.block_cd_n
+		 )	
+		 select '' as sn, ${MAX} as tot,  ${MIN} as min, '' as wkt
+         union all                    
+         (select * from anals_result)
+		]]>
+	</select>
+	
+	<!-- 업종별 분석 범례정보-->
+	<select id="selectSaleCtgLgdInfo" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select max(cnt) as max, min(cnt) as min
+		from(
+			select block_cd_n, COALESCE(sum(amt_corr),0) as cnt
+			from ( ${dytbl} ) sales
+			where 1=1
+			and s_gb_cd = #{gyear}
+			]]>
+	       	   	<choose>
+	          			<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and ts_d <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and ts_d <![CDATA[<=]]> #{eday}
+		        		</if>
+	          			</when>
+	          			<otherwise>
+	          				<if test="smonth != null and smonth != ''">
+	                		and ts_d <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and ts_d <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>
+	          		</choose>   	
+	       	<![CDATA[	
+			and block_cd_n in (
+			        ]]>
+			        <choose>
+			        	<when test="atype == 'area'">
+			        		SELECT block_cd FROM skt_hs_small_block_a_area
+			        	</when>
+			        	<otherwise>
+			        		SELECT block_cd FROM skt_hs_small_block_a  WHERE
+			        		ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			        	</otherwise>
+			        </choose>
+			        <![CDATA[
+			    GROUP BY block_cd	
+			)
+			group by block_cd_n
+		)part1
+		]]>
+	</select>
+	
+	<!-- 매출분석_외국인분석 지역별 -->
+	<select id="selectFgnSalesList_area" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[		
+			select 
+				case when rid is null then 0 else rid end as rid,
+			    h_emd_cd as emd, 
+				cou_nm as div, 
+				case when country_eng_nm is null then '합계' else country_eng_nm end  as item, 
+				sum(tot) as tot, sum(cnt) as cnt
+			from(
+				select 1 as rid, h_emd_cd, cou_nm, country_eng_nm, 
+					sum(amt_corr) as tot, sum(usect_corr) as cnt
+				from view_card_foreign
+				where 1=1
+				and l_gb_cd like #{ctg}
+				]]>
+	        	   	<choose>
+	           			<when test="std == 'day'">
+		        			<if test="sday != null and sday != ''">
+		                		and ta_ym <![CDATA[>=]]> #{sday.substring(0,6)} 
+		                	</if>
+		                	<if test="eday != null and eday != ''">
+			        			and ta_ym <![CDATA[<=]]> #{eday.substring(0,6)}
+			        		</if>
+	           			</when>
+	           			<otherwise>
+	           				<if test="smonth != null and smonth != ''">
+		                		and ta_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and ta_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	</otherwise>
+	           		</choose>   	
+	        	<![CDATA[	
+				and h_emd_cd in (${dongcd})							
+				group by h_emd_cd, cou_nm, country_eng_nm
+			)part1
+			group by grouping sets((rid, h_emd_cd, cou_nm, country_eng_nm),())
+			order by rid desc, tot desc
+		]]>
+	</select>
+	
+	<!-- 매출분석_외국인분석 사용자지정 -->
+	<select id="selectFgnSalesList_user" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		
+		]]>
+	</select>
+	
+	<!-- 매출분석_외국인분석 지도 -->
+	<select id="selectFgnSales_map" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		]]>
+	</select>
+	
+	<!-- 외국인별 분석 범례정보-->
+	<select id="selectSaleFngLgdInfo" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		]]>
+	</select>
+</mapper>

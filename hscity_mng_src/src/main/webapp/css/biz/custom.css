@@ -1,0 +1,138 @@
+@charset "utf-8";
+
+/*-----------------------------------------------------------------------------------
+	date : 2018. 03. 14.
+	version: v 0.1
+	내부 포털
+	퍼블리싱 된 것 이외에 개발자가 추가하는 CSS
+-----------------------------------------------------------------------------------*/
+
+
+/* 모달 팝업 */
+.modal-pop {
+	display:none;
+	z-index:999;
+}
+.layer-pop {
+	position:relative;
+	height:auto;
+	padding:0;
+	background:#fff;
+	border:1px solid #d3d3d3;
+	border-radius:5px;
+}
+.layer-pop .tit {
+	box-sizing:border-box;
+	height:40px;
+	margin:0 5px;
+	padding-left:10px;
+	border-bottom:1px solid #d3d3d3;
+	font-size:15px;
+	font-weight:600;
+	color:#3b5ca0;
+	line-height:40px;
+}
+.layer-pop .cont {
+	padding:15px 20px; 
+	background:#fff; 
+	font-size:14px;
+	line-height:18px; 
+}
+.layer-pop .btn-close {
+	position:absolute;
+	top:-10px;
+	right:-10px;
+	display:inline-block;
+	overflow:hidden;
+	width:27px;
+	height:27px;
+	background:url(../../images/cmm/btn-close3.png) no-repeat;
+	text-indent:-999px;
+}
+
+.btn-box {
+	box-sizing: border-box;
+	margin-top: 30px;
+	padding: 7px 20px 5px;
+	border: 1px dashed #bac3d4;
+	border-bottom: transparent;
+	border-radius: 5px 5px 0 0;
+	background-color: #eeeef5;
+	text-align: right;
+}
+
+#pop-gis {height:700px; width:1200px;}
+
+.bi_div{
+	margin-top : 30px;
+	
+}
+
+
+.dataWrap .dataItem .dataContent {
+    padding: 3px;
+}
+
+.cateWrap.fold  .contentWrap {margin: 0 !important; }
+
+footer {
+    min-height: 60px;
+      max-height: 80px;
+    width: 100%;
+    min-width: 1220px;
+    margin: 0px;
+    position: relative;
+    padding: 0 20px;
+    box-sizing: border-box;
+    line-height: 60px;
+    background: #f0f0f0;
+   
+}
+
+
+.loginWrap .id {background:url(/images/main/login_icon01.png) left no-repeat;}
+.loginWrap .password {background:url(/images/main/login_icon02.png) left no-repeat;}
+
+
+.stitle i.favorite {
+    margin-right: 50px;
+}
+
+.tbl_view_txt {
+    min-height: 0px; 
+}
+
+.dataContent img {
+
+	width: 100% !important;
+	height: 100% !important;
+}
+
+/* .dataContent{ */
+/* 	height:500px !important; */
+/* } */
+.h300 {
+    height: 500px !important;
+}
+.stitle{
+	width: 30%;
+}
+#pop-favorite {height:600px; width:900px;}
+
+.cateWrap .favoSelect {
+
+    border: 2px solid #02549d;
+
+}
+
+div#weather p.big strong{
+	font-size: 18px !important;
+}
+
+.hidden{
+	display:none;
+}
+
+.board_body{
+	height:auto;
+}

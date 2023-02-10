@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:task="http://www.springframework.org/schema/task"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans 
+        					http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+                			http://www.springframework.org/schema/context 
+                			http://www.springframework.org/schema/context/spring-context-4.0.xsd                			
+                			http://www.springframework.org/schema/mvc 
+                			http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+                			http://www.springframework.org/schema/task 
+                			http://www.springframework.org/schema/task/spring-task.xsd">
+
+    <context:component-scan base-package="kr.co.socsoft, egovframework">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Repository"/>
+    </context:component-scan>
+
+    <mvc:annotation-driven/>
+	
+	<!-- 배치 간격 : 매월 1일 새벽 03시-->
+    <bean id="dataLinkBatchBean" class="kr.co.socsoft.data.batch.DataLinkBatchBeanImpl"/>
+    <task:scheduler id="batchScheduler" pool-size="1" />
+    <task:scheduled-tasks scheduler="batchScheduler">
+        <!-- 참고: 초 분 시 일 월 주(년)
+         "0 0 12 * * ?" : 아무 요일, 매월, 매일 12:00:00
+         "0 15 10 ? * *" : 모든 요일, 매월, 아무 날이나 10:15:00
+         "0 15 10 * * ?" : 아무 요일, 매월, 매일 10:15:00
+         "0 15 10 * * ? *" : 모든 연도, 아무 요일, 매월, 매일 10:15
+         "0 15 10 * * ? : 2005" 2005년 아무 요일이나 매월, 매일 10:15
+         "0 * 14 * * ?" : 아무 요일, 매월, 매일, 14시 매분 0초
+         "0 0/5 14 * * ?" : 아무 요일, 매월, 매일, 14시 매 5분마다 0초
+         "0 0/5 14,18 * * ?" : 아무 요일, 매월, 매일, 14시, 18시 매 5분마다 0초
+         "0 0-5 14 * * ?" : 아무 요일, 매월, 매일, 14:00 부터 매 14:05까지 매 분 0초
+         "0 10,44 14 ? 3 WED" : 3월의 매 주 수요일, 아무 날짜나 14:10:00, 14:44:00
+         "0 15 10 ? * MON-FRI" : 월~금, 매월, 아무 날이나 10:15:00
+         "0 15 10 15 * ?" : 아무 요일, 매월 15일 10:15:00
+         "0 15 10 L * ?" : 아무 요일, 매월 마지막 날 10:15:00
+         "0 15 10 ? * 6L" : 매월 마지막 금요일 아무 날이나 10:15:00
+         "0 15 10 ? * 6L 2002-2005" : 2002년부터 2005년까지 매월 마지막 금요일 아무 날이나 10:15:00
+         "0 15 10 ? * 6#3" : 매월 3번째 금요일 아무 날이나 10:15:00
+        -->
+        <!-- 테스트 :: 경기데이터 드림 연계 -->
+        <!--  task:scheduled ref="dataLinkBatchBean" method="batchWork_gyeonggi" cron="0 28 19 25 * ?" />-->
+        
+        
+        
+        <!-- 경기데이터 드림 연계 -->
+        <task:scheduled ref="dataLinkBatchBean" method="batchWork_gyeonggi"   cron="0 00 01 25 * ?" /> <!-- 매월 25 새벽1시 -->
+        <!-- 국민권익위 민원 연계 -->
+        <task:scheduled ref="dataLinkBatchBean" method="batchWork_minwon" cron="0 0 03 * * ?" /><!-- 매일 새벽 3시 -->
+    </task:scheduled-tasks>
+
+    <!-- 맵 형태로 받기위해서 CommandMap 추가 -->
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+        <property name="webBindingInitializer">
+            <bean class="kr.co.socsoft.util.EgovBindingInitializer"/>
+        </property>
+        <property name="customArgumentResolvers">
+            <list>
+                <bean class="egovframework.rte.ptl.mvc.bind.AnnotationCommandMapArgumentResolver"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.web.servlet.view.UrlBasedViewResolver"
+          p:order="1"
+          p:viewClass="org.springframework.web.servlet.view.JstlView"
+          p:prefix="/WEB-INF/jsp/kr/co/socsoft"
+          p:suffix=".jsp"/>
+
+    <bean id="jsonView" class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
+        <property name="contentType" value="application/json;charset=UTF-8"/>
+    </bean>
+
+    <bean id="viewResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver" p:order="0"/>
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver" />
+	
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <mvc:mapping path="/**"/>
+
+            <!-- 인터셉터 제외 uri 항목\-->             
+            <mvc:exclude-mapping path="/login/logout.do"/>
+            
+             
+            <bean class="kr.co.socsoft.util.AuthenticInterceptor"/>                         
+        </mvc:interceptor>
+
+        <!-- 파일 다운로드시 세션에 플래그 값을 주기 위한 인터셉터 -->
+        <mvc:interceptor>
+            <mvc:mapping path="/**/*ExcelList.do"/>
+            <bean class="kr.co.socsoft.interceptor.FileDownloadInterceptor" />
+        </mvc:interceptor>
+        
+    </mvc:interceptors>
+
+    <!-- Annotation 을 사용하지 않는 경우에 대한 MVC 처리 설정 -->
+    <mvc:view-controller path="/cmm/validator.do" view-name="/cmm/validator"/>
+
+    <bean id="downloadView" class="kr.co.socsoft.DownloadView"/>
+
+    <!-- 엑셀 업로드 관리 양식 다운로드 -->
+    <bean id="standardExcelView" class="kr.co.socsoft.StandardExcelView"/>
+
+    <!-- 데이터 엑셀 다운로드 -->
+    <bean id="dataExcelView" class="kr.co.socsoft.DataExcelView"/>
+</beans>

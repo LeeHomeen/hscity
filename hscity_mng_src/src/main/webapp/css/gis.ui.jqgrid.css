@@ -1,0 +1,104 @@
+table.tbl_list { width:100%; margin-top:0; 
+font-size:12px; border-collapse:collapse; 
+	border:0px; }
+table.tbl_list td { 
+	padding:4px 10px; 
+	text-align:center; 
+	font-size:11px; 
+	line-height:26px; 
+	vertical-align:middle; 
+	font-weight:500; 
+	background:#f1f4f9; 
+	color: #353535;
+	border : 0px;
+	border-right-color: transparent;
+}
+table.tbl_list tr:nth-child(odd) td { background:#fff;}
+table.tbl_list tr:hover td { background:#F2FF9D;}
+table.tbl_list td input, table.tbl_list td select { 
+	border:0px solid #b8cce4; 
+	background:#F2FF9D; 
+	height:30px; 
+	line-height:22px; padding:0 0 0 0px; 
+	color:blck; 
+	width:87%; 
+	box-sizing:border-box; 
+	vertical-align:middle; 
+	font-size:12px;}
+table.tbl_list td select option { font-size:12px;}
+table.tbl_list td img { vertical-align:middle; margin:0 0 0 3px;}
+table.tbl_list td strong { font-weight:bold;}
+table.tbl_list tr:first-child td { border-bottom:0px;}
+table.tbl_list tr:last-child td { border-bottom:0px;}
+
+.ui-jqgrid {
+	border: 0px;
+	margin: 0px;
+	padding: 0px;
+	border-left:  0px solid #BDBDBD !important;
+	border-right: 0px solid #d0dceb !important;
+	border-bottom: 0px solid #d0dceb !important;
+	border-right-width: 0px; 
+	border-left-width: 0px; 
+}
+
+.ui-jqgrid .ui-jqgrid-labels th.ui-th-column {
+    font-size:12px;
+    height : 28px;
+    text-align:center;
+    vertical-align:middle; 
+    min-height:22px; 
+    padding:0px; 
+    letter-spacing:-0.5px;
+    border-top : 0px;
+    border-left: 0px;
+    border-bottom:1px solid black !important;
+    border-right: 0px solid #ced6e2 !important; 
+    background-color:#fff;
+	color:#222;
+	font-weight:600;
+}
+
+.ui-widget-content{ 
+	border-top :   0px;
+	border-left:   0px;
+	border-right:  0px;
+	border-bottom: 0px;
+}
+
+.ui-widget-content th{ 
+	border-top :   0px;
+	border-left:   0px;
+	border-right:  0px;
+	border-bottom: 0px;
+	background-color:#fff;
+	font-weight:600;
+}
+
+.ui-widget-content td{ 
+	border-bottom: 0px; 
+	border-left:  0px solid #BDBDBD !important;
+	border-right: 0px solid #d0dceb !important;
+	border-top :  0px;	
+}
+
+.ui-widget-content tr {
+	height : 25px;
+	border-top :   0px;
+	border-left:   0px;
+	border-right:  0px;
+	border-bottom: 1px solid #d0dceb !important;
+}
+
+.ui-widget-content tr:last-child {
+	border-bottom: 1px solid #d0dceb !important;	
+	color:#A6A6A6;
+	background-color:#EAEAEA;	  
+}
+
+.ui-widget-content td:first-child {
+	font-size:11px;	
+	font-weight: 900;
+	color:#002266;  
+}
+

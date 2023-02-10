@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.screen.service.ScreenDao">
+
+	<select id="getBizScreenList" resultType="screenVO" parameterType="map">
+	<!-- kr.co.socsoft.screen.service.ScreenDao.getBizScreenList -->
+		select 
+			a.biz_menu_cd as menu_cd
+			, b.layout
+			, b.biz_main_cd as main_cd
+			, a.biz_menu_nm as menu_nm
+			, a.description as description
+			, a.biz_menu_type_scd as menu_type_scd
+			, a.biz_menu_url as menu_url
+			, coalesce(b.biz_main_loc_no,0) as main_loc_no
+			, case 
+				when a.biz_menu_img = null then 'bi' else 'IMG'
+			 end menu_img_yn
+			, b.biz_menu_img_use_yn as menu_img_use_yn
+			--, encode(a.biz_menu_img, 'base64') as menu_img
+			, a.biz_menu_img as menu_img
+			from hs_biz_menu_mst a inner join hs_biz_main_mng b on a.biz_menu_cd = b.biz_menu_cd
+			where 1=1
+			--and a.use_yn = 'y'
+			and b.use_yn = 'y'
+			<if test="key != null and key != ''">
+			and a.biz_menu_nm LIKE '%'||#{key}||'%' 
+			</if>
+		    and a.biz_menu_type_scd = 'bi'
+			order by a.biz_menu_cd
+	<!-- kr.co.socsoft.screen.service.ScreenDao.getBizScreenList -->
+	</select>
+	
+
+	
+	<select id="getPubScreenList" resultType="screenVO" parameterType="map">
+	<!-- kr.co.socsoft.screen.service.ScreenDao.getPubScreenList -->
+		select 
+			a.pub_menu_cd as menu_cd
+			,b.layout
+			, b.pub_main_cd as main_cd
+			, a.pub_menu_nm as menu_nm
+			, a.description as description
+			, a.pub_menu_type_scd as menu_type_scd
+			, a.pub_menu_url as menu_url
+			, coalesce(b.pub_main_loc_no,0) as main_loc_no
+			, case 
+				when a.pub_menu_img = null then 'bi' else 'IMG'
+			 end menu_img_yn
+			, b.pub_menu_img_use_yn as menu_img_use_yn
+			--, encode(a.pub_menu_img, 'base64') as menu_img
+			, a.pub_menu_img as menu_img
+			from hs_pub_menu_mst a inner join hs_pub_main_mng b on a.pub_menu_cd = b.pub_menu_cd
+			where 1=1
+			--and a.use_yn = 'y'
+			and b.use_yn = 'y'
+			<if test="key != null and key != ''">
+			and a.pub_menu_nm LIKE '%'||#{key}||'%' 
+			</if>
+			and a.pub_menu_type_scd = 'bi_pub'
+			order by a.pub_menu_cd
+	<!-- kr.co.socsoft.screen.service.ScreenDao.getPubScreenList -->
+	</select>
+	
+	<select id="getCheckLocNumbers" resultType="int" parameterType="map">
+	<!-- kr.co.socsoft.screen.service.ScreenDao.getCheckLocNumbers -->
+	select count(1)
+		<if test="type == 'biz'">
+		from hs_biz_main_mng
+		where biz_main_loc_no::text = #{key}
+	    and use_yn = 'y'
+		</if>
+		<if test="type == 'pub'">
+		from hs_pub_main_mng
+		where pub_main_loc_no::text = #{key}
+		and use_yn = 'y'
+		</if>
+	
+	<!-- kr.co.socsoft.screen.service.ScreenDao.getCheckLocNumbers -->
+	</select>
+	
+	<update id="setLocNumbers" parameterType="map">
+	<!-- kr.co.socsoft.screen.service.ScreenDao.setLocNumbers -->
+		<if test="type == 'biz'">
+		update hs_biz_main_mng
+		set biz_main_loc_no = #{key}::int
+		where biz_main_cd = #{seq}
+		</if>
+		<if test="type == 'pub'">
+		update hs_pub_main_mng
+		set pub_main_loc_no = #{key}::int
+		where pub_main_cd = #{seq}
+		</if>
+	<!-- kr.co.socsoft.screen.service.ScreenDao.setLocNumbers -->
+	</update>
+	
+	<update id="removeBefNumers" parameterType="map">
+	<!-- kr.co.socsoft.screen.service.ScreenDao.removeBefNumers -->
+		<if test="type == 'biz'">
+		update hs_biz_main_mng
+		set biz_main_loc_no = 0
+		where biz_main_loc_no = #{key}::int
+		</if>
+		<if test="type == 'pub'">
+		update hs_pub_main_mng
+		set pub_main_loc_no = 0
+		where pub_main_loc_no = #{key}::int
+		</if>
+	<!-- kr.co.socsoft.screen.service.ScreenDao.removeBefNumers -->
+	</update>
+	
+	<update id="removeMainMng" parameterType="map">
+	<!-- kr.co.socsoft.screen.service.ScreenDao.removeMainMng -->
+		<if test="type == 'biz'">
+			update hs_biz_main_mng
+			set use_yn = 'n'
+			where biz_main_cd = #{seq}
+		</if>
+		<if test="type == 'pub'">
+			update hs_pub_main_mng
+			set use_yn = 'n'
+			where pub_main_cd = #{seq}
+		</if>
+	<!-- kr.co.socsoft.screen.service.ScreenDao.removeMainMng -->
+	</update>
+	
+	<select id="getMenuImgYn" parameterType="screenVO" resultType="int">
+		select coalesce(length(b.${type}_menu_img),0)
+		from hs_${type}_main_mng a inner join hs_${type}_menu_mst b
+		on a.${type}_menu_cd = b.${type}_menu_cd
+		where a.${type}_main_cd = #{mainCd}
+	</select>
+	
+	<update id="updateMenuImgUseYn" parameterType="screenVO">
+		update hs_${type}_main_mng
+		set    ${type}_menu_img_use_yn = #{menuImgUseYn}
+		where  ${type}_main_cd = #{mainCd}
+	</update>
+	
+	
+	
+	<!-- 배너 -->
+	<insert id="makeBanner" parameterType="bannerVO">
+		INSERT INTO main_banner (
+			banner_contents, 
+			banner_start_date, 
+			use_yn, 
+			banner_order, 
+			create_id, 
+			create_dt, 
+			banner_end_date,
+			banner_use_yn
+		) VALUES (
+			#{bannerContents},
+			#{bannerStartDate}::date,
+			'y',
+			#{bannerOrder}::smallint,
+			#{createId},
+			now(),
+			#{bannerEndDate}::date,
+			#{bannerUseYn}
+		)
+	</insert>
+	
+	<update id="updateBanner" parameterType="bannerVO">
+		UPDATE main_banner
+		SET
+		banner_contents= #{bannerContents},
+		banner_start_date= #{bannerStartDate}::date,
+			banner_end_date= #{bannerEndDate}::date,
+		banner_use_yn= #{bannerUseYn},
+		banner_order= #{bannerOrder}::smallint,
+		update_id= #{updateId},
+		update_dt= now()
+<!-- 		banner_end_date= #{banner_end_date} -->
+		WHERE banner_sn= #{bannerSn}::Integer
+	</update>
+	
+	<select id="getBannerList" resultType="bannerVO" parameterType="map">
+		SELECT
+			row_number() over(order by banner_sn asc) row_num,
+			banner_sn,
+			banner_contents, 
+			banner_start_date, 
+			use_yn, 
+			banner_order, 
+			create_id, 
+			create_dt, 
+			update_id,
+			update_dt, 
+			banner_end_date,
+			banner_use_yn
+		FROM main_banner 
+		where 1=1
+			<if test="key != null and key != ''">
+			and banner_contents LIKE '%'||#{key}||'%' 
+			</if>
+			and use_yn ='y'
+		order by create_dt desc
+	</select>
+	
+	<select id="getBannerDetail" resultType="bannerVO" parameterType="java.lang.String">
+		SELECT 
+			banner_sn,
+			banner_contents, 
+			banner_start_date, 
+			use_yn, 
+			banner_order, 
+			create_id, 
+			create_dt, 
+			update_id,
+			update_dt, 
+			banner_end_date,
+			banner_use_yn
+		FROM main_banner 
+		where banner_sn = #{bannerSn}::Integer
+	</select>
+	
+	<update id="removeBanner" parameterType="bannerVO">
+		UPDATE main_banner
+		SET 
+		use_yn= 'n',
+		update_id= #{updateId},
+		update_dt=now()
+		WHERE banner_sn= #{bannerSn}::Integer
+	</update>
+	
+	<select id="getCheckBannerOrder" resultType="java.lang.Integer" parameterType="map">
+		select count(1)
+		from main_banner
+		where 1=1
+		and banner_order = #{key}::smallint
+		and use_yn = 'y'
+		<if test="bannerSn != null">
+			and banner_sn != #{bannerSn}::Integer
+		</if>
+	</select>
+	
+	<update id="removeBefOrder" parameterType="map">
+		update main_banner
+		set banner_order = 0
+		where banner_order = #{key}::smallint
+	</update>
+	
+	<update id="setBannerOrder" parameterType="map">
+		update main_banner
+		set banner_order = #{key}::smallint
+		where banner_sn = #{seq}::Integer
+	</update>
+	
+	<update id="updateBannerUseYn" parameterType="bannerVO">
+		update main_banner
+		set
+		banner_use_yn = #{bannerUseYn}
+		where banner_sn = #{bannerSn}::Integer
+	</update>
+	
+	<update id="updateLayout" parameterType="map">
+		<if test="type == 'biz'">
+			update hs_biz_main_mng
+			set layout = ${key}::int
+		</if>
+		<if test="type == 'pub'">
+			update hs_pub_main_mng
+			set layout = ${key}::int
+		</if>
+	</update>
+</mapper>
+	

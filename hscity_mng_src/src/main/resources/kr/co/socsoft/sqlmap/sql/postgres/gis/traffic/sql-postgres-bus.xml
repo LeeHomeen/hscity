@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.BusAnalsDao">	
+	
+	<!-- 저장버스 도입요구 분석결과 -->
+	<select id="selectBusList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select '2-2-1' as mid, 
+			        case when rid is null then 0 else rid end as rid, 
+	       			lid, div, opop, fpop, cityhall, medical, hospital, woffice, fac, old100, fac100, tot
+			from(
+				select rid, lid, case when div is null then '합계' else div end as div, 
+					sum(opop) as opop, sum(fpop) as fpop, sum(cityhall) as cityhall,
+					sum(medical) as medical, sum(hospital) as hospital, sum(woffice) as woffice,
+					sum(fac) as fac, avg(old100) as old100, avg(fac100) as fac100, avg(tot) as tot
+				from(
+					select 1 as rid,
+					      line_nm as lid, 
+						  bus_nm as div, 
+						  coalesce(old_pop,0) as opop, 
+						  coalesce(sk_pop,0) as fpop, 
+						  coalesce(cityhall,0) as cityhall, 
+						  coalesce(public_medical, 0) as medical,
+						  coalesce(hospital, 0) as hospital, 
+						  coalesce(old_welf_office, 0) as woffice, 
+						  coalesce(fac, 0) as fac,
+						  coalesce(old_100, 0) as old100, 
+						  coalesce(fac_100, 0) as fac100, 
+						  coalesce(num, 0) as tot
+					from hst_ana_weak_busline  
+					where line_nm in (${bus})
+				)part1
+				group by grouping sets((rid, lid, div), ())		
+			)part2
+			order by rid desc, div asc
+		]]>
+	</select>
+	
+	
+	<!-- 사각지대 분석결과 -->
+	<select id="selectBusAnals" parameterType="trafficAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		with hst_ana_grid_old_all as(
+			select sum(pop) as cnt, 0 as min,
+				'POLYGON((' || array_to_string(  array_agg( 
+					        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+					        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+			from(
+				select spo_no_cd, pop, ST_Transform(geom, ${COORD}) as poly
+				from(		
+					select spo_no_cd, old_pop as pop, (ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom
+					from hst_ana_grid_old
+					WHERE ST_Intersects( 
+		    					ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom
+		    				) = true
+		    				order by spo_no_cd				
+				)part1																																	
+			)part2
+			GROUP BY spo_no_cd
+		)
+		select ${MAX} as cnt, ${MIN} as min, null as wkt
+		union all
+		select * from hst_ana_grid_old_all
+		]]>
+	</select>
+	
+	
+	<!-- 노인격자 범례정보 -->
+	<select id="selectBusLgdInfo" parameterType="trafficAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+			select 
+				max(coalesce(old_pop,0)) as max,
+				min(coalesce(old_pop,0)) as min,
+				max(coalesce(sk_pop,0)) as fmax,
+				min(coalesce(sk_pop,0)) as fmin
+			from hst_ana_grid_old
+		]]>
+	</select>
+</mapper>

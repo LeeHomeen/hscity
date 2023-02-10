@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.spatial.service.SpatialDao">
+	<!-- spatial 공간분서  -->
+	
+	<!-- 중심점 기준 반경 폴리곤 생성 -->
+	<select id="selectRadiusPolygon" parameterType="spatialVO" resultType="egovMap">
+		<![CDATA[
+			SELECT ST_ASTEXT(ST_Buffer(ST_GeomFromText('POINT(${lat} ${lon})'),${radius},'quad_segs=8')) as WKT;
+		]]>
+	</select>
+	
+</mapper>

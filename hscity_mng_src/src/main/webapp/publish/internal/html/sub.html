@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" >
+	<title>화성시 데이터 포털</title>
+
+	<link rel="stylesheet" type="text/css" href="../css/jquery-ui.css">
+	<link rel="stylesheet" type="text/css" href="../css/base.css" />
+	<link rel="stylesheet" type="text/css" href="../css/layout.css" />
+	<link rel="stylesheet" type="text/css" href="../css/simpletree.css">
+</head>
+ 
+<body>
+  	<!-- 헤더영역 //-->
+	<header>
+		<h1><a href="main.html"><img src="../images/main/logo.png" alt="logo">화성시 데이터 포털</a></h1>
+		<div>
+			<input type="text" placeholder="메뉴명을 검색할 수 있습니다">
+			<button type="button" class="btn-search poplink" poplink="#pop-searchresult"></button>	<p>
+				OOO과 <strong>홍길동</strong>
+				<a href="#pop-pwfind" class="btn btn-white ml5 poplink">비밀번호 변경</a>
+				<a class="btn">로그아웃</a>
+			</p>	
+			<img src="../images/cmm/menu.png" alt="Menu" class="navBtn">		
+		</div>
+	</header>
+	<!--// 헤더영역 -->
+	
+	<!-- 우메뉴 //-->
+	<nav class="sideNav">
+		<a href="notice_list.html"><img src="../images/cmm/icon-right-menu1.png"><span>공지사항</span></a>
+		<a href="faq.html"><img src="../images/cmm/icon-right-menu2.png"><span>FAQ</span></a>
+		<a href="qna_list.html"><img src="../images/cmm/icon-right-menu3.png"><span>Q&amp;A</span></a>
+		<a href="#"><img src="../images/cmm/icon-right-menu4.png"><span>관리자</span></a>
+	</nav>
+	<!--// 우메뉴 -->
+
+	<div class="AllWrap">
+		<!-- 좌메뉴 //-->
+		<div class="cateWrap">
+			<a class="favoSelect poplink" href="#pop-favorite">즐겨찾기 항목 선택</a>
+
+			<div id="treemenu">
+				<h3>데이터분석 카테고리 1</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+				<h3>사회복지 분야</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+				<h3>경제/산업 분야</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+				<h3>공공분야</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+				<h3>감염병 분석</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+				<h3>교통 분석</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+				<h3>GIS 공간분석</h3>
+				<div>
+					<ul>
+						<li>세부 항목 1
+							<ul>
+								<li><a href="#">메뉴 1</a></li>
+								<li><a href="#">메뉴 2</a></li>
+								<li><a href="#">메뉴 3</a></li>
+							</ul>
+						</li>
+						<li>세부 항목 2</li>
+						<li>세부 항목 3</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<!--// 좌메뉴 -->
+		
+		<!-- 콘텐츠영역 //-->
+		<div class="contentWrap">
+			<img src="../images/cmm/btncate_close.png" alt="카테고리 열기&닫기" class="cateBtn">
+			
+			<h3 class="stitle">
+				<img src="../images/cmm/icon_graph.png" alt="" class="bl">차량등록/자동차세 – 차량등록 대비 자동차세 현황
+				<i class="favorite"></i>
+			</h3>
+			
+			<div class="subContentWrap">
+				<div class="subContent">
+					<!-- 콘텐츠 //-->
+					
+						<table class="tbl_view mt10">
+							<caption></caption>
+							<colgroup>
+								<col width="80px">
+								<col>
+								<col width="180px">
+							</colgroup>
+							<tbody>
+								<tr class="tbl_view_file">
+									<th scope="row">첨부파일</th>
+									<td colspan="2">
+										<a href="#">차량등록자료.xlsx</a>	
+									</td>
+								</tr>
+								<tr>
+									<td colspan="3">
+										<div class="tbl_view_txt">
+											9월 화성시 차량등록정보 입니다.<br>
+											OOOOOO<br>
+											OOOOOO<br>
+										</div>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+						
+						<table class="tbl-basic mb10">
+							<caption></caption>
+							<colgroup>
+								<col width="50px">
+								<col width="80px">
+								<col width="80px">
+								<col width="80px">
+								<col width="80px">
+								<col width="80px">
+								<col width="100px">
+								<col width="150px">
+								<col>
+							</colgroup>
+							<thead>
+								<tr>
+									<th scope="col">No</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+									<th scope="col">항목명</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>공장설립</td>
+									<td>72</td>
+									<td>일반</td>
+									<td>2017</td>
+									<td>20170630</td>
+									<td>20170710</td>
+									<td>주식회사 빌트존</td>
+									<td>경기도 화성시 정남면 정남동로 164-5, 1동</td>
+								</tr>
+							</tbody>
+						</table>
+					
+					<!--// 콘텐츠 -->
+				</div>
+			</div>
+		</div>
+		<!--// 콘텐츠영역 -->		
+	</div>
+	
+	<!-- 푸터영역 //-->
+	<footer>
+		<p>Copyright(c) 2018 by Hwaseong City. All Rights Reserved.</p>
+		<div class="familyWrap">
+			<h3>Family Site</h3>
+			<ul>
+				<li><a href="#" target="_blank">화성시</a></li>
+				<li><a href="#" target="_blank">화성시</a></li>
+			</ul>
+		</div>
+	</footer>
+	<!--// 푸터영역 -->
+	
+	<!-- 모달 : 비밀번호 변경 //-->
+	<div class="pop" id="pop-pwfind">
+		<span class="button b-close"><span><img src="../images/cmm/btn_close.png" alt="close"></span></span>
+		<h3>비밀번호 변경</h3>
+		<div class="content">
+			<ul>
+				<li><input type="password" placeholder="현재 비밀번호"></li>
+				<li><input type="password" placeholder="Password"></li>
+				<li><input type="password" placeholder="Password 확인"></li>
+			</ul>
+			<a href="#" class="btn btn-darkgray btn-pop mt20">비밀번호 변경</a>
+		</div>
+	</div>
+	<!--// 모달 : 비밀번호 변경 -->
+	
+	<!-- 모달 : 메뉴명 검색결과 //-->
+	<div class="pop" id="pop-searchresult">
+		<span class="button b-close"><span><img src="../images/cmm/btn_close.png" alt="close"></span></span>
+		<h3 class="line">메뉴명 검색결과 입니다</h3>
+		<div class="content">
+			<table class="tbl-pop" summary="">
+				<caption></caption>
+				<colgroup>
+					<col>
+					<col width="100px">
+				</colgroup>
+				<tbody>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<!--// 모달 : 메뉴명 검색결과 -->
+	
+	<!-- 모달 : 즐겨찾기 목록 //-->
+	<div class="pop" id="pop-favorite">
+		<span class="button b-close"><span><img src="../images/cmm/btn_close.png" alt="close"></span></span>
+		<h3 class="line">즐겨찾기 목록 입니다</h3>
+		<div class="content">
+			<table class="tbl-pop" summary="">
+				<caption></caption>
+				<colgroup>
+					<col width="*">
+					<col width="180px">
+				</colgroup>
+				<tbody>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+					<tr>
+						<td>01_TEST_대메뉴 > 1번에 1번째 메뉴입니다</td>
+						<td class="t-right"><a class="btn btn-orange">바로가기</a> <a class="btn">삭제</a></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<!--// 모달 : 즐겨찾기 목록 -->
+	
+	<script src="../js/lib/jquery/jquery-1.11.0.min.js"></script>
+	<script src="../js/lib/jquery/jquery-ui.js"></script>
+	<script src="../js/cmm/jquery.simpletree.js"></script>
+	<script src="../js/cmm/popup.js"></script>
+	<script>
+		$(function(){
+			// 우메뉴 열기&닫기
+			$(".navBtn").click(function(){
+				$(".sideNav").toggleClass("show");
+				var src = $(this).attr('src');
+				var newsrc = (src=='../images/cmm/menu.png') ? '../images/cmm/menu_close.png' : '../images/cmm/menu.png';
+				$(this).attr('src', newsrc );
+			});
+			//좌메뉴 열기&닫기
+			$(".cateBtn").click(function(){
+				$(".cateWrap").toggleClass("fold");
+				var src = $(this).attr('src');
+				var newsrc = (src=='../images/cmm/btncate_close.png') ? '../images/cmm/btncate.png' : '../images/cmm/btncate_close.png';
+				$(this).attr('src', newsrc );
+			});
+			// 패밀리사이트
+			$(".familyWrap h3").click(function(){
+				$(".familyWrap ul").toggle();
+			});
+			// 트리메뉴
+			$(".cateWrap").height($('.contentWrap').outerHeight()-20);
+			$("#treemenu").accordion({active: false, collapsible: true});
+			$("#treemenu > div > ul").simpleTree({startCollapsed: false});
+			// 모달 띄우기
+			$('.poplink').on('click', function(e){
+				e.preventDefault();
+				$($(this).attr('href')).bPopup();
+				$($(this).attr('poplink')).bPopup();
+			});
+			//즐겨찾기 추가
+			$('.favorite').click(function(){
+				$(this).toggleClass('on');
+			})
+		})
+	</script>
+
+</body>
+</html>

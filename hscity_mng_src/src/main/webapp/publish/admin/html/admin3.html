@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>화성시 데이터 포털 관리 시스템</title>
+
+  
+  <script src="https://use.fontawesome.com/0632bd037c.js"></script>
+  <link rel="stylesheet" type="text/css" href="../css/base.css" />
+  <link rel="stylesheet" type="text/css" href="../css/admin.css" />
+  
+
+  <script src="../js/lib/jquery/jquery-1.12.4.min.js"></script> 
+
+
+ </head>
+ <body>
+	<div id="wrap">
+		<!-- 헤더 -->
+		<div id="header">
+			<div class="hd-inwrap">
+				<h1 class="logo">
+					<a href="#"><img src="../images/cmm/logo1.png" alt="화성시 데이터포털 관리시스템"/></a>
+				</h1>
+				<div class="gnb-wrap">
+					<ul class="gnb">
+						<li class="on">
+							<a href="#"><i class="fa fa-user-circle-o" aria-hidden="true"></i>사용자 및 권한 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-list" aria-hidden="true"></i>메뉴 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-desktop" aria-hidden="true"></i>메인화면 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-server" aria-hidden="true"></i>데이터 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-bar-chart" aria-hidden="true"></i>이용현황 통계 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>게시판 관리</a>
+						</li>
+					</ul>					
+				</div>
+			</div>
+		</div>
+		<!-- //헤더 -->
+
+		<div id="container">
+			<div class="sec-left">
+				<!-- 유저 정보 -->
+				<div class="sec-user">
+					<p class="user">
+						<i class="fa fa-address-card-o fa-2x"></i>
+						정책기획과 <strong>홍길동</strong> 님
+					</p>
+					<button class="btn sr1 st1">로그아웃</button>
+				</div>
+				<!-- //유저 정보 -->
+				
+				<!-- 2depth 메뉴 -->
+				<ul class="lnb">
+					<li>
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>사용자 관리
+						</a>
+					</li>
+					<li class="on">
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>사용자 동기화 로그
+						</a> 
+					</li>
+					<li>
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>권한 관리
+						</a>
+					</li>
+					<li>
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>권한- 업무그룹 관리
+						</a>
+					</li>
+				</ul>
+				<!-- //2depth 메뉴 -->
+			</div>
+
+			<div class="sec-right">
+				<!-- 상단 경로 및 페이지 타이틀 -->
+				<div class="top-bar">
+					<div class="path-wrap">
+						<span class="home">홈</span>&nbsp;&nbsp;&gt;
+						<span class="path">사용자 및 권한 관리</span>&nbsp;&nbsp;&gt;
+						<span class="path">사용자 동기화 로그</span>&nbsp;&nbsp;&gt;
+						<span class="now">사용자 동기화 로그 조회</span>
+					</div>
+					<div class="clearfix">
+						<p class="tit-page">사용자 동기화 로그 조회</p>
+						<ul class="btn-wrap">
+							<li>
+								<button class="btn sr3 st3">
+									<i class="fa fa-file-excel-o" aria-hidden="true"></i>엑셀 다운로드
+								</button>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<!-- //상단 경로 및 페이지 타이틀 -->
+
+				<!-- 컨텐츠 영역 -->
+				<div class="cont">
+					<!-- 표 상단 설정 영역 -->
+					<div class="tbl-top">
+						<form method="post" action="#">
+							<fieldset>
+							<legend>표,게시판 검색 조건</legend>
+								<div class="left">
+									<input type="text" class="ip sr1 st1 cald" value="201710" title="시작날짜"/> -
+									<input type="text" class="ip sr1 st1 cald" value="201712" title="끝날짜"/>
+								</div>
+								<div class="right">
+									<label>
+										<select class="ip sr1 st1 w1">
+											<option value="" selected>-로그타입-</option>
+											<option value="">시작</option>
+											<option value="">진행</option>
+											<option value="">성공</option>
+											<option value="">실패</option>
+										</select>
+									</label>
+									<label for="srch" class="label">메세지:</label>
+									<input type="text" class="ip sr1 st1 w2" id="srch"/>
+									<input type="button" class="btn sr2 st2" value="조회"/>
+								</div>
+							</fieldset> 
+						</form>							
+					</div>
+					<!-- //표 상단 설정 영역 -->
+					<table class="tbl sr1 st1">
+						<caption class="hide">사용자 목록조회 게시판 표</caption>
+						<colgroup>
+							<col style="width:7%"/>
+							<col style="width:20%"/>
+							<col style="width:15%"/>
+							<col style="width:auto"/>
+						</colgroup>
+						<thead>
+							<tr>
+								<th scope="col">No</th>
+								<th scope="col">로그일자</th>
+								<th scope="col">로그타입</th>
+								<th scope="col">로그메세지</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<th scope="row">1</th>
+								<td>2017.00.00 13:00:00</td>
+								<td class="ft-st1">성공</td>
+								<td class="align-l">***가 성공적으로 수행되었습니다.</td>
+							</tr>
+							<tr>
+								<th scope="row">2</th>
+								<td>2017.00.00 13:00:00</td>
+								<td class="ft-st1">일반</td>
+								<td class="align-l">***가 성공적으로 수행되었습니다.</td>
+							</tr>
+							<tr>
+								<th scope="row">3</th>
+								<td>2017.00.00 13:00:00</td>
+								<td class="ft-st1">실패</td>
+								<td class="align-l">무결성 원칙에 위해되었습니다.</td>
+							</tr>
+						</tbody>
+					</table>						
+
+					<!-- 페이징 -->
+					<div class="paging">
+						<ol>
+							<li class="first">
+								<a href="#"><i class="fa fa-angle-double-left fa-lg"></i>처음페이지</a>
+							</li>
+							<li class="prev">
+								<a href="#"><i class="fa fa-angle-left fa-lg"></i>이전페이지</a>
+							</li>
+							<li class="current"><a href="#">1</a></li>
+							<li><a href="#">2</a></li>
+							<li><a href="#">3</a></li>
+							<li><a href="#">4</a></li>
+							<li><a href="#">5</a></li>
+							<li><a href="#">6</a></li>
+							<li><a href="#">7</a></li>
+							<li class="next">
+								<a href="#"><i class="fa fa-angle-right fa-lg"></i>다음페이지</a>
+							</li>
+							<li class="last">
+								<a href="#"><i class="fa fa-angle-double-right fa-lg"></i>마지막페이지</a>
+							</li>
+						</ol>
+					</div>
+					<!-- //페이징 -->
+				</div>
+				<!-- //컨텐츠 영역 -->
+				
+			</div>
+		</div>
+		<!--//container -->
+
+	</div>
+ </body>
+</html>

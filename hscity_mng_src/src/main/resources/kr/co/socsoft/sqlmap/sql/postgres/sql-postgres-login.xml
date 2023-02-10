@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.login.service.LoginDao">
+	
+	<select id="getUserInfo" resultType="map" parameterType="String">
+		select user_id
+		     , user_name
+		     , dept_id
+		     , dept_name
+		     , sys_yn
+		from   hs_user_mst
+		where  user_id = #{userId};
+	</select>
+	
+	<select id="checkLoginInfo" resultType="map" parameterType="map">
+		select case when (select count(*) from hs_user_mst where user_id = #{userId}) = 0 then 'false'
+                    else (case when (select count(*) from hs_user_mst where user_id = #{userId} and user_pwd = encode(#{userPwd}::bytea, 'base64')) = 0 then 'false'
+                               else 'true'
+                          end)
+               end status
+            , case when (select count(*) from hs_user_mst where user_id = #{userId}) = 0 then '존재하지 않는 아이디입니다.'
+                    else (case when (select count(*) from hs_user_mst where user_id = #{userId} and user_pwd = encode(#{userPwd}::bytea, 'base64')) = 0 then '패스워드가 맞지 않습니다.'
+                               else ''
+                          end)
+               end msg
+        ;
+	</select>
+	
+	<select id="checkSSOLoginInfo" resultType="map" parameterType="map">
+		select case when (select count(*) from hs_user_mst where user_id = #{userId}) = 0 then 'false'
+                    else 'true'
+               end status
+            , case when (select count(*) from hs_user_mst where user_id = #{userId}) = 0 then '[sso]존재하지 않는 아이디입니다.'
+                   else ''
+               end msg
+        ;
+	</select>
+		
+</mapper>

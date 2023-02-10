@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.data.service.impl.BigDataUploadMapper">
+	
+	<select id="selectDataUploadScheduleList" resultType="dataUploadScheduleVO" parameterType="dataUploadScheduleVO">
+		<![CDATA[
+			/* selectDataUploadScheduleList */
+			select * from (
+                select
+                  a.table_id,
+                  a.table_nm,
+                  b.description,
+                  b.upld_file_nm,
+                  b.upld_file_encoding,
+                  b.insert_stdym,
+                  b.split_table_ym,
+                  to_char(to_date(b.shcedule_day, 'YYYYMMDD'), 'YYYY-MM-DD') || ' ' || b.schedule_hour || ':' ||b.schedule_minute shcedule_day,
+                  b.schedule_hour,
+                  b.schedule_minute,
+                  b.schedule_state,
+                  b.rmk,
+                  b.use_yn,
+                  b.create_id,
+                  b.create_dt,
+                  b.update_id,
+                  b.update_dt,
+                  case when coalesce(b.table_id, '0') = '0' then 'n' else 'y' end regist
+                from hs_data_table_info a left outer join hs_data_upload_schedule b on(a.table_id = b.table_id)
+		]]>
+                where 1 = 1
+                and data_conn_scd='bigtext'
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                        and a.${searchField} like '%' || #{searchString} || '%'
+                    </if>
+                </if>
+			) foo
+            order by foo.${orderByColumn} ${orderBySord}
+            limit #{recordCountPerPage} offset #{firstIndex}
+	</select>
+
+    <select id="selectDataUploadScheduleExcelList" resultType="map" parameterType="dataUploadScheduleVO">
+        <![CDATA[
+			/* selectDataUploadScheduleExcelList */
+			select * from (
+                select
+                  a.table_id,
+                  a.table_nm,
+                  b.description,
+                  b.upld_file_nm,
+                  b.upld_file_encoding,
+                  b.insert_stdym,
+                  b.split_table_ym,
+                  to_char(to_date(b.shcedule_day, 'YYYYMMDD'), 'YYYY-MM-DD') || ' ' || b.schedule_hour || ':' ||b.schedule_minute shcedule_day,
+                  b.schedule_hour,
+                  b.schedule_minute,
+                  b.schedule_state,
+                  b.rmk,
+                  case when b.use_yn is null then '미등록' else (case when b.use_yn = 'y' then '예약중' else '사용안함' end) end use_yn,
+                  b.create_id,
+                  b.create_dt,
+                  b.update_id,
+                  b.update_dt
+                from hs_data_table_info a left outer join hs_data_upload_schedule b on(a.table_id = b.table_id)
+                where 1=1 and data_conn_scd='bigtext'
+            ) foo
+            order by foo.table_id desc
+		]]>
+    </select>
+
+    <select id="selectDataUploadSchedule" resultType="dataUploadScheduleVO" parameterType="dataUploadScheduleVO">
+        <![CDATA[
+			/* selectDataUploadSchedule */
+            select
+              a.table_id,
+              a.table_nm,
+              a.mng_std_ymd_scd,
+              a.insert_std_ymd_yn,
+              a.split_table_scd,
+              b.description,
+              b.upld_file_nm,
+              b.upld_file_encoding,
+              b.insert_stdym,
+              b.split_table_ym,
+              b.shcedule_day,
+              b.schedule_hour,
+              b.schedule_minute,
+              b.schedule_state,
+              b.rmk,
+              b.use_yn,
+              b.create_id,
+              b.create_dt,
+              b.update_id,
+              b.update_dt,
+              case when coalesce(b.table_id, '0') = '0' then 'n' else 'y' end regist
+            from hs_data_table_info a left outer join hs_data_upload_schedule b on(a.table_id = b.table_id)
+            where a.table_id = #{tableId} and data_conn_scd='bigtext'
+		]]>
+    </select>
+
+	<select id="selectDataUploadScheduleListToCnt" resultType="int" parameterType="dataUploadScheduleVO">
+		<![CDATA[
+			/* selectDataUploadScheduleListToCnt */
+			select count(*)
+            from hs_data_table_info a left outer join hs_data_upload_schedule b on(a.table_id = b.table_id)
+		]]>
+            where 1 = 1 and data_conn_scd='bigtext'
+            <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                    and a.${searchField} like '%' || #{searchString} || '%'
+                </if>
+            </if>
+	</select>
+
+	<select id="selectDbUpldLogList" resultType="dbUpldLogVO" parameterType="dbUpldLogVO">
+		<![CDATA[
+			/* selectDbUpldLogList */
+			select row_number() over(order by upld_log_seq desc) upld_log_seq, * from (
+                select
+                  upld_log_seq,
+                  table_id,
+                  table_nm,
+                  (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = data_conn_scd) data_conn_scd,
+                  (select detail_nm from hs_detail_code where group_cd = 'log_type_scd' and detail_cd = log_type_scd) log_type_scd,
+                  to_char(log_date, 'YYYY-MM-DD HH24:MI:SS') log_date,
+                  log_msg,
+                  create_id
+                from hs_db_upld_log
+		]]>
+                where 1 = 1
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+                            and log_date between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                        </if>
+                    </if>
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchCondition)">
+                        and data_conn_scd = #{searchCondition}
+                    </if>
+			) foo
+            order by foo.${orderByColumn} ${orderBySord}
+            limit #{recordCountPerPage} offset #{firstIndex}
+    </select>
+
+    <select id="selectDbUpldLogExcelList" resultType="map" parameterType="dbUpldLogVO">
+        <![CDATA[
+			/* selectDbUpldLogExcelList */
+			select row_number() over(order by upld_log_seq desc) upld_log_seq, * from (
+                select
+                  upld_log_seq,
+                  table_id,
+                  table_nm,
+                  (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = data_conn_scd) data_conn_scd,
+                  (select detail_nm from hs_detail_code where group_cd = 'log_type_scd' and detail_cd = log_type_scd) log_type_scd,
+                  to_char(log_date, 'YYYY-MM-DD HH24:MI:SS') log_date,
+                  log_msg,
+                  create_id
+                from hs_db_upld_log
+                where log_date between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+            ) foo
+            order by foo.upld_log_seq desc
+		]]>
+
+    </select>
+
+	<select id="selectDbUpldLogListToCnt" resultType="int" parameterType="dbUpldLogVO">
+		<![CDATA[
+			/* selectDbUpldLogListToCnt */
+			select count(*)
+			from hs_db_upld_log
+			where 1 = 1
+		]]>
+            <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+                    and log_date between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                </if>
+            </if>
+            <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                    and ${searchField} like '%' || #{searchString} || '%'
+                </if>
+            </if>
+            <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchCondition)">
+                and data_conn_scd = #{searchCondition}
+            </if>
+	</select>
+
+    <update id="updateDataUploadSchedule" parameterType="dataUploadScheduleVO">
+        <![CDATA[
+            /* updateDataUploadSchedule */
+            with to_be_upserted (
+				table_id,
+				description,
+				upld_file_nm,
+				upld_file_encoding,
+				insert_stdym,
+                split_table_ym,
+                shcedule_day,
+                schedule_hour,
+                schedule_minute,
+                schedule_state,
+                rmk,
+                use_yn,
+                create_id,
+                create_dt,
+                update_id,
+                update_dt
+			) as (
+				values (
+					#{tableId},
+                    #{description},
+                    #{upldFileNm},
+                    #{upldFileEncoding},
+                    replace(#{insertStdym},'-',''),
+                    #{splitTableYm},
+                    #{shceduleDay},
+                    #{scheduleHour},
+                    #{scheduleMinute},
+                    #{scheduleState},
+                    #{rmk},
+                    #{useYn},
+                    #{createId},
+                    now(),
+                    #{updateId},
+                    now()
+				)
+			),
+            updated as (
+                update hs_data_upload_schedule set
+                    table_id = to_be_upserted.table_id,
+                    description = to_be_upserted.description,
+                    upld_file_nm = to_be_upserted.upld_file_nm,
+                    upld_file_encoding = to_be_upserted.upld_file_encoding,
+                    insert_stdym = to_be_upserted.insert_stdym,
+                    split_table_ym = to_be_upserted.split_table_ym,
+                    shcedule_day = to_be_upserted.shcedule_day,
+                    schedule_hour = to_be_upserted.schedule_hour,
+                    schedule_minute = to_be_upserted.schedule_minute,
+                    schedule_state = to_be_upserted.schedule_state,
+                    rmk = to_be_upserted.rmk,
+                    use_yn = to_be_upserted.use_yn,
+                    update_id = to_be_upserted.update_id,
+                    update_dt = to_be_upserted.update_dt
+                from to_be_upserted
+                where hs_data_upload_schedule.table_id = to_be_upserted.table_id
+                returning hs_data_upload_schedule.table_id
+            )
+            insert into hs_data_upload_schedule (
+                table_id,
+				description,
+				upld_file_nm,
+				upld_file_encoding,
+				insert_stdym,
+                split_table_ym,
+                shcedule_day,
+                schedule_hour,
+                schedule_minute,
+                schedule_state,
+                rmk,
+                use_yn,
+                create_id,
+                create_dt
+            )
+            select table_id,
+				description,
+				upld_file_nm,
+				upld_file_encoding,
+				insert_stdym,
+                split_table_ym,
+                shcedule_day,
+                schedule_hour,
+                schedule_minute,
+                schedule_state,
+                rmk,
+                use_yn,
+                create_id,
+                now()
+            from to_be_upserted where table_id not in (select table_id from updated)
+        ]]>
+    </update>
+
+    <select id="selectDataTableInfoList" parameterType="dataTableInfoVO" resultType="dataTableInfoVO">
+        <![CDATA[
+          /* selectDataTableInfoList */
+          select
+            table_id,
+            table_nm,
+            description,
+            data_gubun_nm,
+            data_type_scd,
+            data_conn_scd,
+            openapi_url,
+            openapi_time_scd,
+            data_file_path,
+            mng_std_ymd_scd,
+            insert_std_ymd_yn,
+            split_table_scd,
+            data_upd_per_scd,
+            ori_data_owner,
+            ori_data_mng_nm,
+            ori_data_mng_tel,
+            ori_data_mng_email,
+            last_upload_dt,
+            rmk,
+            use_yn,
+            create_id,
+            create_dt,
+            update_id,
+            update_dt
+          from hs_data_table_info
+          where data_conn_scd = 'excel'
+        ]]>
+    </select>
+
+    <select id="selectExcelUploadDataColumnList" resultType="string" parameterType="map">
+        <![CDATA[
+            /* selectExcelUploadDataColumnList */
+            select a.column_nm || a.type || a.nullable as column_nm
+            from 
+            (
+            select a.column_nm,
+                   b.data_type,
+                   CASE WHEN data_type  = 'character varying' or data_type ='text' or data_type='character' THEN  '_문자(' || CHARACTER_MAXIMUM_LENGTH || ')'
+		        WHEN data_type  = 'numeric' THEN '_숫자(' || NUMERIC_PRECISION || ',' || NUMERIC_SCALE ||')'
+		        WHEN data_type  = 'smallint' or data_type='bigint' THEN '_숫자'
+		   ELSE data_type
+		   END AS type,
+		   CASE WHEN is_nullable ='NO' THEN '_필수' ELSE '' END AS nullable
+            from hs_data_table_column_info a,
+                 information_schema.columns b
+            where 
+            a.table_id=b.table_name
+            and a.column_id=b.column_name
+            and a.table_id = #{tableId}
+            and a.std_form_use_yn='y'
+            and a.use_yn='y'
+            order by column_seq
+            ) a
+        ]]>
+    </select>
+
+    <select id="selectTextdataUploadManual" resultType="string" parameterType="kr.co.socsoft.data.vo.TextdataUploadManualVO">
+         <!--  
+          select sp_hscity_textdata_upload_manual(#{tableId}, #{userId}, #{uploadFileName}, #{uploadFileEncoding}, #{insertStdym},'')
+         -->
+        <![CDATA[
+          select sp_hscity_textdata_upload_manual(#{tableId}, #{userId}, #{uploadFileName}, #{uploadFileEncoding}, #{insertStdym},'')
+        ]]>
+    </select>
+</mapper>

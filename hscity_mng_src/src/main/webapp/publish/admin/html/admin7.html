@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+ <head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>화성시 데이터 포털 관리 시스템</title>
+
+  
+  <script src="https://use.fontawesome.com/0632bd037c.js"></script>
+  <link rel="stylesheet" type="text/css" href="../css/base.css" />
+  <link rel="stylesheet" type="text/css" href="../css/admin.css" />
+  
+
+  <script src="../js/lib/jquery/jquery-1.12.4.min.js"></script> 
+
+
+ </head>
+ <body>
+	<div id="wrap">
+		<!-- 헤더 -->
+		<div id="header">
+			<div class="hd-inwrap">
+				<h1 class="logo">
+					<a href="#"><img src="../images/cmm/logo1.png" alt="화성시 데이터포털 관리시스템"/></a>
+				</h1>
+				<div class="gnb-wrap">
+					<ul class="gnb">
+						<li>
+							<a href="#"><i class="fa fa-user-circle-o" aria-hidden="true"></i>사용자 및 권한 관리</a>
+						</li>
+						<li class="on">
+							<a href="#"><i class="fa fa-list" aria-hidden="true"></i>메뉴 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-desktop" aria-hidden="true"></i>메인화면 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-server" aria-hidden="true"></i>데이터 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-bar-chart" aria-hidden="true"></i>이용현황 통계 관리</a>
+						</li>
+						<li>
+							<a href="#"><i class="fa fa-pencil-square-o" aria-hidden="true"></i>게시판 관리</a>
+						</li>
+					</ul>					
+				</div>
+			</div>
+		</div>
+		<!-- //헤더 -->
+
+		<div id="container">
+			<div class="sec-left">
+				<!-- 유저 정보 -->
+				<div class="sec-user">
+					<p class="user">
+						<i class="fa fa-address-card-o fa-2x"></i>
+						정책기획과 <strong>홍길동</strong> 님
+					</p>
+					<button class="btn sr1 st1">로그아웃</button>
+				</div>
+				<!-- //유저 정보 -->
+				
+				<!-- 2depth 메뉴 -->
+				<ul class="lnb">
+					<li>
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>대시민 카테고리 관리
+						</a>
+					</li>
+					<li class="on">
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>대시민 메뉴화면 관리
+						</a> 
+					</li>
+					<li>
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>내부용 카테고리 관리
+						</a>
+					</li>
+					<li>
+						<a href="#">
+							<i class="fa fa-check" aria-hidden="true"></i>내부용 메뉴화면 관리
+						</a>
+					</li>
+				</ul>
+				<!-- //2depth 메뉴 -->
+			</div>
+
+			<div class="sec-right">
+				<!-- 상단 경로 및 페이지 타이틀 -->
+				<div class="top-bar">
+					<div class="path-wrap">
+						<span class="home">홈</span>&nbsp;&nbsp;&gt;
+						<span class="path">메뉴 관리</span>&nbsp;&nbsp;&gt;
+						<span class="path">대시민 메뉴화면 관리</span>&nbsp;&nbsp;&gt;
+						<span class="now">대시민 메뉴화면 편집</span>
+					</div>
+					<div class="clearfix">
+						<p class="tit-page">대시민 메뉴화면 편집(등록)</p>
+					</div>
+				</div>
+				<!-- //상단 경로 및 페이지 타이틀 -->
+
+				<!-- 컨텐츠 영역 -->
+				<div class="cont">					
+					<!-- 표 상단 설정 영역 -->
+					<div class="tbl-top">						
+						<div class="right">
+							<a href="#" class="btn sr2 st2">목록보기</a>	
+							<a href="#" class="btn sr2 st4">저장</a>	
+							<a href="#" class="btn sr2 st5">삭제</a>	
+						</div>					
+					</div>
+					<!--// 표 상단 설정 영역 -->
+					<table class="tbl sr1 st1">
+						<caption class="hide">대시민 메뉴화면 편집 표</caption>
+						<colgroup>
+							<col style="width:20%"/>
+							<col style="width:auto"/>
+						<tbody>
+							<tr>
+								<th scope="row" class="th2">카테고리</th>
+								<td class="align-l">
+									<label>
+										<select class="ip sr1 st1 w2">
+											<option value="" selected>인구정보</option>
+											<option value="">11</option>
+										</select>
+									</label>
+									<label>
+										<select class="ip sr1 st1 w2">
+											<option value="" selected>주민등록인구</option>
+											<option value="">11</option>
+										</select>
+									</label>
+									<label>
+										<select class="ip sr1 st1 w2">
+											<option value="" selected>선택안함</option>
+											<option value="">11</option>
+										</select>
+									</label>								
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">
+									<label for="aa1">등록메뉴명(화면)</label>	
+								</th>
+								<td class="align-l">
+									<input type="text" id="aa1" class="ip sr1 st1 w3"/>	
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">
+									<label for="aa2">한줄 설명</label>
+								</th>
+								<td class="align-l">
+									<input type="text" id="aa2" class="ip sr1 st1 w3"/>	
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2" style="height:250px;">내용</th>
+								<td class="align-l">
+									*에디터
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">
+									<label for="aa3">첨부파일</label>
+								</th>
+								<td class="align-l">
+									<input type="file" id="aa3" class="ip sr1 st1 w4"/>
+									<a href="#" class="btn sr2 st3">추가</a>
+									<ul class="file-list">
+										<li>
+											인구정보(엑셀통계) 
+											<a href="#"><img src="../images/cmm/btn-delete.gif" alt="삭제" title="삭제"/></a>
+										</li>
+										<li>
+											인구정보2
+											<a href="#"><img src="../images/cmm/btn-delete.gif" alt="삭제" title="삭제"/></a>
+										</li>
+									</ul>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">BI 화면 여부</th>
+								<td class="align-l">
+									<label>
+										<select class="ip sr1 st1 w1">
+											<option value="" selected>BI 화면</option>
+											<option value="">일반 화면</option>
+										</select>
+									</label>		
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">
+									<label for="aa4">BI URL</label>
+								</th>
+								<td class="align-l">
+									<input type="text" id="aa4" class="ip sr1 st1 w4"/>
+									<a href="#" class="btn sr2 st3">미리보기</a>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">메인화면 사용여부</th>
+								<td class="align-l">
+									<label>
+										<select class="ip sr1 st1 w1">
+											<option value="" selected>사용</option>
+											<option value="">사용안함</option>
+										</select>
+									</label>
+									<label for="aa5" class="label">대표이미지:</label> 
+									<input type="file" id="aa5" class="ip sr1 st1 w4"/>
+								</td>
+							</tr>
+							<tr>
+								<th scope="row" class="th2">메뉴 사용여부</th>
+								<td class="align-l">
+									<label>
+										<select class="ip sr1 st1 w1">
+											<option value="" selected>사용</option>
+											<option value="">사용안함</option>
+										</select>
+									</label>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					
+				</div>
+				<!-- //컨텐츠 영역 -->
+				
+			</div>
+		</div>
+		<!--//container -->
+
+	</div>
+ </body>
+</html>

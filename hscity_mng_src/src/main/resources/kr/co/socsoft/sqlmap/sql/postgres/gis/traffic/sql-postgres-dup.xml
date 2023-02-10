@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.DupAnalsDao">
+	
+	<!-- 버스라인 중복도 조회 -->
+	<select id="selectBusDupList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select  ${coord} as coord,
+		       '2-6-1' as mid,
+		       bsid, nsid, bsnm, nsnm, cnt, bus, st_astext(bp) as bp, st_astext(np) as np,
+			   st_astext(st_makeline(bp, np)) as bline
+		from(
+			select base_sta_id as bsid, next_sta_id as nsid, 
+				base_sta_nm as bsnm, next_sta_nm as nsnm,	   
+				count(*) as cnt, 
+				array_to_string(array_agg(bus_nm),',') as bus,
+				ST_Transform(ST_SetSRID(st_point(base_wgs_x, base_wgs_y), 4326), ${coord}) as bp,
+				ST_Transform(ST_SetSRID(st_point(next_wgs_x, next_wgs_y), 4326), ${coord}) as np
+			from hst_ana_busline_pline 
+			group by base_sta_id, next_sta_id, base_sta_nm, next_sta_nm,
+					base_wgs_x, base_wgs_y, next_wgs_x, next_wgs_y
+			order by base_sta_id asc, next_sta_id asc
+		)part1
+		]]>
+	</select>
+</mapper>

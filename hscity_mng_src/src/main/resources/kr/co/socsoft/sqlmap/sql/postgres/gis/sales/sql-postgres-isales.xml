@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.sales.service.ISalesAnalsDao">
+	<!-- 인구/매출분석 _유입매출 -->
+	
+	<!-- 시도별 유입매출_행정동경계 list-->
+	<select id="selectSiSalesList" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+			select rid, case when item is null then '합계' else item end as item, 
+	    	   sum(cnt) as cnt
+		    from(
+		        select ROW_NUMBER() OVER(order by cnt desc) as rid, cnt, si.ctp_kor_nm as item 
+		        from(	
+		                select c_sido_cd scd, sum(amt_corr) as cnt
+		                from ( ${dytbl} ) isales
+		                where 1=1
+		                and c_sgg_cd is null
+		                ]]>
+		                	<choose>
+			        			<when test="atype == 'area'">
+			        				and block_cd_n in ( select block_cd from skt_hs_small_block_a_area
+			                		GROUP BY block_cd ) 
+			        			</when>
+			        			<otherwise>
+			        				 and block_cd_n in ( 
+	       								select block_cd 
+	       								from skt_hs_small_block_a 
+	       								where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	       							)
+			        			</otherwise>
+			        		</choose>
+		                	<if test="smonth != null and smonth != ''">
+		                		and ts_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and ts_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	<![CDATA[
+		                group by c_sido_cd
+		        )part1
+		        left join hm_tl_scco_ctprvn_a si 
+		        on part1.scd = si.ctprvn_cd
+		    )part2
+		    group by grouping sets((rid, cnt, item),())
+		]]>
+	</select>
+	<!-- 시도별 유입매출_행정동경계 geom-->
+	<select id="selectSiSalesArea_geom" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[		
+			with basicInfo as (
+			    select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+				from skt_hs_small_block_a a,
+	    				hm_bnd_adm_dong_pg_a b
+				where 1=1
+				and b.gubun = #{gubun}  
+				AND b.adm_cd in (${dongcd})
+				and st_intersects(a.geom,b.geom)
+			    
+			), influxInfo as (
+			    select 
+			        ctp_kor_nm as item, cnt, 0 as min,
+			        ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+			        ST_ASTEXT(bgeom) bpoint, 
+			        ST_ASTEXT(hgeom) hpoint
+			    from(
+			        select scd, adm_cd, adm_nm, cnt, si.ctp_kor_nm, 
+			               ST_Centroid(ST_Transform(si.geom,   ${coord})) as bgeom,
+			               ST_Centroid(ST_Transform(hemd.geom, ${coord})) as hgeom
+			        from(
+			            select scd,  
+			            card.adong_cd as acd, card.adong_cd as anm,
+			            sum(cnt) as cnt
+			            from(
+			                select block_cd_n, c_sido_cd scd, sum(amt_corr) as cnt
+			                from ( ${dytbl} ) isales
+			                where 1=1 
+			                and c_sgg_cd is null
+			                and block_cd_n in ( select block_cd from basicInfo GROUP BY block_cd ) 
+			                ]]>
+			                	<if test="smonth != null and smonth != ''">
+			                		and ts_ym <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_ym <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	<![CDATA[
+			                group by block_cd_n, c_sido_cd
+			            )part1 left join (select block_cd, adong_cd, adong_nm from basicInfo) card
+			            on part1.block_cd_n = card.block_cd
+			            group by card.adong_cd, card.adong_nm, scd
+			        )part2 
+			        left join hm_tl_scco_ctprvn_a si 
+			        on part2.scd = si.ctprvn_cd 
+			        left join hm_bnd_adm_dong_pg_a hemd
+			        on part2.acd = hemd.adm_cd	and hemd.gubun = #{gubun}
+			    )part3   
+			)
+			select null as item, max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint from influxInfo 
+			union all
+			(select * from influxInfo order by cnt desc)			
+		]]>
+	</select>	
+	
+	<!-- 시도별 유입매출_사용자지정  geom-->
+	<select id="selectSiSalesUser_geom" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+			WITH influxInfo as (
+			    select 
+			        ctp_kor_nm as item, cnt, 0 as min,
+			        ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+			        ST_ASTEXT(bgeom) bpoint, 
+			        ST_ASTEXT(hgeom) hpoint
+			    from(
+			        select si.ctp_kor_nm, scd, cnt,
+			               ST_Centroid(ST_Transform(si.geom, ${coord})) as bgeom,
+			        	   ST_Centroid(ST_Transform(
+						   		ST_Centroid(ST_GeomFromText('${area}', 4326))
+						   , ${coord})) as hgeom
+			        from(
+			            select c_sido_cd scd, sum(amt_corr) as cnt
+			            from ( ${dytbl} ) isales
+			            where 1=1
+			            and c_sgg_cd is null
+			            ]]>
+		                	<if test="smonth != null and smonth != ''">
+		                		and ts_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and ts_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	<![CDATA[
+			            and block_cd_n in ( 
+	       					select block_cd 
+	       						from skt_hs_small_block_a 
+	       					where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	       				)
+			            group by c_sido_cd
+			       )part1 
+			        left join hm_tl_scco_ctprvn_a si 
+			        on part1.scd = si.ctprvn_cd 
+			    )part2   
+			)
+			select null as item, max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint from influxInfo 
+			union all
+			(select * from influxInfo order by cnt desc)			
+		]]>
+	</select>
+	
+	
+	<!-- 시군구별 유입매출_행정동경계 리스트 -->
+	<select id="selectSigunSalesList" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+			select rid, case when item is null then '합계' else item end as item, sum(cnt) as cnt 
+			from(
+    			select ROW_NUMBER() OVER(order by cnt desc) as rid, part3.*
+    			from(
+        			select cnt, (area.sinm || ' ' || area.signm) as item
+        			from(
+      					select 
+        					(c_sido_cd || c_sigu_cd || case when c_sgg_cd is null then 
+        						case when c_sido_cd = '11' then '0' else '' end
+        					else c_sgg_cd end ) as scd, 
+        					sum(amt_corr) as cnt 
+    					from ( ${dytbl} ) isales
+    					where 1=1 
+    					and c_sido_cd in ('11','41') --서울 경기권 시군구별
+    					]]>
+		                	<choose>
+			        			<when test="atype == 'area'">
+			        				and block_cd_n in ( select block_cd from skt_hs_small_block_a_area GROUP BY block_cd ) 
+			        			</when>
+			        			<otherwise>
+			        				 and block_cd_n in ( 
+	       								select block_cd 
+	       								from skt_hs_small_block_a 
+	       								where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	       							)
+			        			</otherwise>
+			        		</choose>
+		                	<if test="smonth != null and smonth != ''">
+		                		and ts_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and ts_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	<![CDATA[           
+  						group by c_sido_cd, c_sigu_cd, c_sgg_cd
+        			)part2
+    				left join (select sicd, sigcd, sinm, signm, siggeom from view_all_area group by sicd, sigcd, sinm, signm, siggeom) area 
+				    on part2.scd = area.sigcd
+				)part3
+    			where item is not null    
+			)part4
+			group by grouping sets((rid, cnt, item),()) 
+			order by rid
+		]]>
+	</select>
+	<!-- 시군구별 유입매출_행정동경계 geom-->
+	<select id="selectSigunSalesArea_geom" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+			with basicInfo as (
+			    select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+				from skt_hs_small_block_a a,
+	    				hm_bnd_adm_dong_pg_a b
+				where 1=1
+				and b.gubun = #{gubun}  
+				AND b.adm_cd in (${dongcd})
+				and st_intersects(a.geom,b.geom)
+			    
+			), influxInfo as (
+			    select 
+			        snm as item, cnt, 0 as min,
+			        ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+			        ST_ASTEXT(bgeom) bpoint, 
+			        ST_ASTEXT(hgeom) hpoint
+			    from(
+			        select scd, adm_cd, adm_nm, cnt, (area.signm) as snm , 
+			               ST_Centroid(ST_Transform(area.siggeom, ${coord})) as bgeom,
+			               ST_Centroid(ST_Transform(hemd.geom, ${coord})) as hgeom
+			        from(
+			            select scd,  
+			            card.adong_cd as acd, card.adong_nm as anm,
+			            sum(cnt) as cnt
+			            from(
+			                select   block_cd_n, (c_sido_cd || c_sigu_cd || case when c_sgg_cd is null then 
+			                						case when c_sido_cd = '11' then '0' else '' end 
+			                		 			  else c_sgg_cd end ) as scd,
+			                         sum(amt_corr) as cnt
+			                from ( ${dytbl} ) isales
+			                where 1=1
+			                and c_sido_cd in ('11','41') --서울 경기권 시군구별
+			                and block_cd_n in ( select block_cd from basicInfo GROUP BY block_cd ) 
+			                ]]>
+			                	<if test="smonth != null and smonth != ''">
+			                		and ts_ym <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_ym <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	<![CDATA[
+			                group by block_cd_n, c_sido_cd, c_sigu_cd, c_sgg_cd
+			            )part1 left join (select block_cd, adong_cd, adong_nm from basicInfo) card
+			            on part1.block_cd_n = card.block_cd
+			            where scd is not null
+			            group by card.adong_cd, card.adong_nm, scd            
+			        )part2 
+			        left join (select sicd, sigcd, sinm, signm, siggeom from view_all_area group by sicd, sigcd, sinm, signm, siggeom) area
+			        on part2.scd = area.sigcd 
+			        left join hm_bnd_adm_dong_pg_a hemd
+			        on part2.acd = hemd.adm_cd	and hemd.gubun = #{gubun}
+			    )part3   
+			)
+			select null as item, max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint from influxInfo where line is not null
+			union all
+			(select * from influxInfo where line is not null order by cnt desc)			
+		]]>
+	</select>
+	<!-- 시군구별 유입매출_행정동경계 사용자 지정-->
+	<select id="selectSigunSalesUser_geom" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+			with influxInfo as (
+			    select 
+			        snm as item, cnt, 0 as min,    	
+			        ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+			        ST_ASTEXT(bgeom) bpoint, 
+			        ST_ASTEXT(hgeom) hpoint
+			    from(
+			        select scd, cnt, (area.signm) as snm , 
+			               ST_Centroid(ST_Transform(area.siggeom, ${coord})) as bgeom,
+			               ST_Centroid(ST_Transform(
+						   		ST_Centroid(ST_GeomFromText('${area}', 4326))
+						   , ${coord})) as hgeom        
+			            from(
+			                select   (c_sido_cd || c_sigu_cd || case when c_sgg_cd is null then 
+			                			case when c_sido_cd = '11' then '0' else '' end 
+			                		  else c_sgg_cd end ) as scd,
+			                         sum(amt_corr) as cnt
+			                from  ( ${dytbl} ) isales			                
+			                where 1=1
+			                and c_sido_cd in ('11','41')
+			                ]]>
+			                	<if test="smonth != null and smonth != ''">
+			                		and ts_ym <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_ym <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	<![CDATA[
+				            and block_cd_n in ( 
+		       					select block_cd 
+		       						from skt_hs_small_block_a 
+		       					where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		       				)
+			                group by c_sido_cd, c_sigu_cd, c_sgg_cd
+			            )part1 			        
+			        left join (select sicd, sigcd, sinm, signm, siggeom from view_all_area group by sicd, sigcd, sinm, signm, siggeom) area
+			        on part1.scd = area.sigcd
+			    )part2   
+			)
+			select null as item, max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint from influxInfo where line is not null
+			union all
+			(select * from influxInfo where line is not null order by cnt desc)			
+		]]>
+	</select>
+	
+	
+	<!-- 인접별 유입매출_행정동경계 -->
+	<select id="selectAdjSalesList" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+			select rid, case when item is null then '합계' else item end as item, sum(cnt) as cnt 
+			from(
+    			select ROW_NUMBER() OVER(order by cnt desc) as rid, part3.*
+    			from(
+        			select cnt, (area.adm_nm) as item
+        			from(
+      					select 
+        					(c_sido_cd || c_sigu_cd || c_sgg_cd  || c_dong_cd ) as scd,
+        					sum(amt_corr) as cnt 
+    					from ( ${dytbl} ) isales
+    					where 1=1 
+    					and c_dong_cd is not null
+    					and (c_sido_cd || c_sigu_cd || c_sgg_cd) in ('41590') --화성시
+    					]]>
+		                	<choose>
+			        			<when test="atype == 'area'">
+			        				and block_cd_n in ( select block_cd from skt_hs_small_block_a_area GROUP BY block_cd ) 
+			        			</when>
+			        			<otherwise>
+			        				 and block_cd_n in ( 
+	       								select block_cd 
+	       								from skt_hs_small_block_a 
+	       								where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	       							)
+			        			</otherwise>
+			        		</choose>
+		                	<if test="smonth != null and smonth != ''">
+		                		and ts_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and ts_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	<![CDATA[           
+  						group by c_sido_cd, c_sigu_cd, c_sgg_cd, c_dong_cd
+        			)part2
+    				left join hm_bnd_adm_dong_pg_a area 
+				    on part2.scd = substring(area.adm_cd,1,8)
+				    and area.gubun = #{gubun}
+				)part3
+    			where item is not null    
+			)part4
+			group by grouping sets((rid, cnt, item),()) 
+			order by rid
+		]]>
+	</select>
+	
+	<!-- 인접별 유입매출_행정동경계 geom-->	
+	<select id="selectAdjSalesArea_geom" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+			with basicInfo as ( 
+			    select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+				from skt_hs_small_block_a a,
+	    				hm_bnd_adm_dong_pg_a b
+				where 1=1
+				and b.gubun = #{gubun}  
+				AND b.adm_cd in (${dongcd})
+				and st_intersects(a.geom,b.geom)  
+			), 
+			 influxInfo as ( 
+			     select snm as item, cnt, 0 as min, ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, ST_ASTEXT(bgeom) bpoint, ST_ASTEXT(hgeom) hpoint 
+			     from( 
+			         select scd, hemd.adm_cd, hemd.adm_nm, cnt, (area.adm_nm) as snm, 
+			         ST_Centroid(ST_Transform(area.geom, ${coord})) as bgeom, 
+			         ST_Centroid(ST_Transform(hemd.geom, ${coord})) as hgeom 
+			         from( 
+			             select scd, card.adong_cd as acd, card.adong_nm as anm, sum(cnt) as cnt 
+			             from( 
+			                 
+			                 select block_cd_n, (c_sido_cd || c_sigu_cd || c_sgg_cd || c_dong_cd ) as scd, sum(amt_corr) as cnt 
+			                 from ( ${dytbl} ) isales
+			                 where 1=1 
+			                 and c_dong_cd is not null
+			                 and (c_sido_cd || c_sigu_cd || c_sgg_cd) in ('41590')
+			                 and block_cd_n in ( SELECT block_cd FROM basicInfo GROUP BY block_cd ) 
+			                ]]>
+			                	<if test="smonth != null and smonth != ''">
+			                		and ts_ym <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_ym <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	<![CDATA[
+			                 group by block_cd_n, c_sido_cd, c_sigu_cd, c_sgg_cd, c_dong_cd
+			                 
+			             )part1 
+			             left join (select block_cd, adong_cd, adong_nm from basicInfo ) card 
+			             on part1.block_cd_n = card.block_cd 
+			             where scd is not null 
+			             group by card.adong_cd, card.adong_nm, scd 
+			         )part2 left join hm_bnd_adm_dong_pg_a area 
+			         on part2.scd = substring(area.adm_cd,1,8)
+			         and area.gubun = #{gubun}
+			         left join hm_bnd_adm_dong_pg_a hemd 
+			         on part2.acd = hemd.adm_cd 
+			         and hemd.gubun = #{gubun}
+			     )part3 
+			 ) 
+			 select null as item, max(cnt) as cnt,  min(cnt) as min, null as line, null as bpoint, null as hpoint from influxInfo where line is not null 
+			 union all 
+			 (select * from influxInfo where line is not null order by cnt desc) 
+		]]>
+	</select>
+	
+	<!-- 인접별 유입매출_사용자지정 geom-->
+	<select id="selectAdjSalesUser_geom" parameterType="salesAnalsVO" resultType="egovMap">
+		<![CDATA[
+			with influxInfo as (
+			    select 
+			        snm as item, cnt, 0 as min,   	
+			        ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+			        ST_ASTEXT(bgeom) bpoint, 
+			        ST_ASTEXT(hgeom) hpoint
+			    from(
+			        select scd, cnt, area.adm_nm as snm , 
+			               ST_Centroid(ST_Transform(area.geom, ${coord})) as bgeom,
+			               ST_Centroid(ST_Transform(
+						   		ST_Centroid(ST_GeomFromText('${area}', 4326))
+						   , ${coord})) as hgeom        
+			            from(
+			                select   (c_sido_cd || c_sigu_cd || c_sgg_cd || c_dong_cd ) as scd,
+			                         sum(amt_corr) as cnt
+			                from ( ${dytbl} ) isales			               
+			                where 1=1
+			                and c_dong_cd is not null
+			                and (c_sido_cd || c_sigu_cd || c_sgg_cd) in ('41590') 
+			                ]]>
+			                	<if test="smonth != null and smonth != ''">
+			                		and ts_ym <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and ts_ym <![CDATA[<=]]> #{emonth}
+				        		</if>
+				        	<![CDATA[
+				            and block_cd_n in ( 
+		       					select block_cd 
+		       						from skt_hs_small_block_a 
+		       					where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		       				)
+			                group by c_sido_cd, c_sigu_cd, c_sgg_cd, c_dong_cd
+			            )part1 			        
+			        	left join  hm_bnd_adm_dong_pg_a area on part1.scd = substring(area.adm_cd,1,8) 
+						and area.gubun = #{gubun} 
+			    )part2   
+			)
+			select null as item, max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint from influxInfo where line is not null
+			union all
+			(select * from influxInfo where line is not null order by cnt desc)	
+		]]>
+	</select>
+</mapper>

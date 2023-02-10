@@ -1,0 +1,139 @@
+@charset "utf-8"; 
+
+/*-----------------------------------------------------------------------------------
+	date : 2018. 01. 00.
+	version: v 0.1
+	license: 
+-----------------------------------------------------------------------------------*/
+
+@font-face{
+	font-family:'NotoSansKR';
+	font-style:normal;
+	font-weight:400;
+	src:url('font/NotoSansKR-Regular.eot');
+	src:local('※'),
+		url('font/NotoSansKR-Regular.woff2') format('woff2'),
+		url('font/NotoSansKR-Regular.woff') format('woff'),
+		url('font/NotoSansKR-Regular.otf') format('opentype');
+}
+@font-face{
+	font-family:'NotoSansKR';
+	font-style:normal;
+	font-weight:500;
+	src:url('font/NotoSansKR-Medium.eot'); 
+	src:local('※'),
+		url('font/NotoSansKR-Medium.woff2') format('woff2'),
+		url('font/NotoSansKR-Medium.woff') format('woff'),
+		url('font/NotoSansKR-Medium.otf') format('opentype');
+}
+@font-face{
+	font-family:'NotoSansKR';
+	font-style:normal;
+	font-weight:600;
+	src:url('font/NotoSansKR-Bold.eot');
+	src:local('※'),
+		url('font/NotoSansKR-Bold.woff2') format('woff2'),
+		url('font/NotoSansKR-Bold.woff') format('woff'),
+		url('font/NotoSansKR-Bold.otf') format('opentype');
+}
+
+/*reset*/
+html, body,div,p,span,applet, object, iframe,
+h1,h2,h3,h4,h5,h6,
+a,img,br,hr,em,strong,
+address,cite,
+ul,li,ol,dl,dt,dd,
+table,caption,colgroup,col,
+thead,tbody,tfoot,tr,th,td,
+form,fieldset,legend,label,input,
+select,option,textarea,optgroup,map,area,button,
+section,article,aside,menu,nav,hgroup,header,footer,canvas,details,
+figure,figcaption,time,mark,ruby,embed,video,audio,output,summary,
+small,i,b,u,s,q,blockquote,pre, abbr, acronym, big,code,del, dfn, ins, kbd, samp,sub, sup, var {
+	margin:0;  
+	padding:0;
+	border:0; 
+/*	outline:0;*/
+	font-size: 100%;
+	vertical-align: baseline;
+}
+html,body { 
+	width:100%;
+	height:100%;
+	font-smooth: always;
+	-webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+	font-smoothing:antialiased;
+}
+body, input {
+	font-size:13px;
+	color:#454545;
+	font-family: 'NotoSansKR', '본고딕', '맑은고딕', 'dotum', '돋움', Sans-serif;
+	line-height:1;
+}	
+ul,ol { list-style-type:none;}
+img,fieldset { border:0 none;}
+input,label { vertical-align:middle;}
+input, select,button {	 vertical-align:middle;}
+a:link,a:visited {
+	text-decoration:none; color:#777;}
+a:hover,a:active {
+	text-decoration:none; color:#777;}
+address,em,cite { font-style:normal;}
+table,td,th {
+	border-collapse: collapse;
+	border-spacing: 0;
+	margin:0px;
+	padding:0px;
+}
+button {
+	overflow:visible;
+	border:none;
+	background-color:transparent;
+	cursor:pointer;
+	-webkit-appearance:none;
+	appearance:none;
+}
+
+.hide, legend {
+	width:1px;
+	height:1px;
+	font-size:0;
+	line-height:0;
+	overflow:hidden;
+	visibility:hidden;
+	position:absolute;
+	left:-999px;
+}
+.clearfix:after {
+	content:'';
+	clear:both;
+	display:block;
+}
+#skip_nav {
+	position:absolute;
+	z-index:999; 
+	width:100%;
+}
+#skip_nav a {
+	position:absolute; 
+	top:-100px;
+	height:20px;
+}
+#skip_nav a:hover,
+#skip_nav a:active,
+#skip_nav a:focus {
+	position:absolute; 
+	top:0; 
+	width:100%;
+	background-color:#333;
+	color:#ffffff;
+	font-size:15px;
+	text-align:center;
+	display:block;
+}
+
+
+
+
+

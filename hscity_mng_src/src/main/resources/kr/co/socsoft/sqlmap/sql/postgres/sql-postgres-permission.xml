@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.permission.service.PermissionDao">
+
+	<select id="getUserPermissionList" resultType="userPermitVO" parameterType="map">
+	<!-- kr.co.socsoft.permission.service.PermissionDao.getUserPermissionList -->
+		select 
+		    (select dept_name from hs_user_dept where dept_id = (select upper_dept_id from hs_user_dept where dept_id = a.dept_id)) as upper_dept_name
+		    ,a.dept_name
+		    ,a.user_id
+		    ,a.user_name
+		    ,a.user_stat_name
+		    ,case when a.sys_yn = 'y' then '관리자' else '일반' end as sys_yn_nm
+		    ,a.sys_yn
+		    , to_char(a.update_dt, 'YYYY-MM-DD HH24:MI:SS') as update_dt
+		from   hs_user_mst a INNER JOIN hs_user_dept b
+        on a.dept_id = b.dept_id
+		where 1 = 1
+	
+		<if test="deptOne != null and deptOne != ''">
+		and b.upper_dept_id = #{deptOne}
+		</if>
+		<if test="deptTwo != null and deptTwo != ''">
+		and a.dept_id = #{deptTwo}
+		</if>
+		<if test="keyword != null and keyword != ''">
+		<choose>
+            <when test="idOrName == 'userId' ">
+			and a.user_id LIKE '%'||#{keyword}||'%' 
+			</when>
+			<otherwise>
+			and a.user_name LIKE '%'||#{keyword}||'%' 
+			</otherwise>
+		</choose>
+		</if>
+			<!-- kr.co.socsoft.permission.service.PermissionDao.getUserPermissionList -->
+	</select>
+	
+	<select id="getUserPermissionExcel" resultType="map" parameterType="map">
+	<!-- kr.co.socsoft.permission.service.PermissionDao.getUserPermissionList -->
+		select 
+		    (select dept_name from hs_user_dept where dept_id = (select upper_dept_id from hs_user_dept where dept_id = a.dept_id)) as upper_dept_name
+		    ,a.dept_name
+		    ,a.user_id
+		    ,a.user_name
+		    ,a.user_stat_name
+		    ,case when a.sys_yn = 'y' then '관리자' else '일반' end as sys_yn
+		    , to_char(a.update_dt, 'YYYY-MM-DD HH24:MI:SS') as update_dt
+		from   hs_user_mst a INNER JOIN hs_user_dept b
+        on a.dept_id = b.dept_id
+		where 1 = 1
+	
+		<if test="deptOne != null and deptOne != ''">
+		and b.upper_dept_id = #{deptOne}
+		</if>
+		<if test="deptTwo != null and deptTwo != ''">
+		and a.dept_id = #{deptTwo}
+		</if>
+		<if test="keyword != null and keyword != ''">
+		<choose>
+            <when test="idOrName == 'userId' ">
+			and a.user_id LIKE '%'||#{keyword}||'%' 
+			</when>
+			<otherwise>
+			and a.user_name LIKE '%'||#{keyword}||'%' 
+			</otherwise>
+		</choose>
+		</if>
+			<!-- kr.co.socsoft.permission.service.PermissionDao.getUserPermissionList -->
+	</select>
+	
+	
+	<select id="getDeptNamesOne" resultType="UserPermitVO">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getDeptNamesOne -->
+		select dept_id, dept_name
+		from hs_user_dept
+		where dept_order = '3'
+		order by dept_name
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getDeptNamesOne -->
+	
+	</select>
+	
+	<select id="getDeptNamesTwo" resultType="UserPermitVO" >
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getDeptNamesTwo -->
+		select dept_id, dept_name
+		from hs_user_dept
+		where dept_order = '4'
+		order by dept_name
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getDeptNamesTwo -->
+	</select>
+	
+	<select id="getDeptNamesThatFoundUpper" resultType="UserPermitVO" >
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getDeptNamesTwo -->
+		select dept_id, dept_name
+		from hs_user_dept
+		where dept_order = '4'
+		and upper_dept_id = #{deptId}
+		order by dept_name
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getDeptNamesTwo -->
+	
+	</select>
+	
+	
+	
+	<select id="getHsBizMenuMst" resultType="MenuPermitVO" parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getHsBizMenuMst -->
+		select z.biz_menu_cd
+		     , z.biz_menu_type_scd
+		     , z.upper_biz_root_category_nm
+		     , z.upper_biz_category_nm
+		     , z.biz_category_nm
+		     , z.biz_category_cd
+		     , z.biz_menu_nm
+		     , z.description
+		     , z.biz_menu_url
+		from  (select a.biz_menu_cd
+		            , a.biz_menu_type_scd
+		            , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    	   when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    	   when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+                           else ''
+                      end upper_biz_root_category_nm
+                    , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                           else ''
+                      end upper_biz_category_nm
+                    , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           else ''
+                      end biz_category_nm
+                    , a.biz_category_cd
+                    , a.biz_menu_nm
+                    , a.description
+                    , a.biz_menu_url
+			   from   hs_biz_menu_mst a INNER JOIN hs_biz_menu_category b on a.biz_category_cd = b.biz_category_cd
+			   where  a.use_yn = 'y'
+			   and    a.biz_menu_role_scd = #{type}
+			   ) z
+		where 1 = 1
+		<if test="categoryL != null and categoryL != ''">
+		and z.upper_biz_root_category_nm = #{categoryL}
+		</if>
+		<if test="categoryM != null and categoryM != ''">
+		and z.upper_biz_category_nm = #{categoryM}
+		</if>
+		<if test="categoryS != null and categoryS != ''">
+		and z.biz_category_nm = #{categoryS}
+		</if>
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getHsBizMenuMst -->
+	</select>
+	
+	
+	
+	<select id="getHsBizMenuMst2" resultType="MenuPermitVO" parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getHsBizMenuMst -->
+		select z.biz_menu_cd
+		     , z.biz_menu_type_scd
+		     , z.upper_biz_root_category_nm
+		     , z.upper_biz_category_nm
+		     , z.biz_category_nm
+		     , z.biz_category_cd
+		     , z.biz_menu_nm
+		     , z.description
+		     , z.biz_menu_url
+		from  (select a.biz_menu_cd
+		            , a.biz_menu_type_scd
+		            , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    	   when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    	   when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+                           else ''
+                      end upper_biz_root_category_nm
+                    , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                           else ''
+                      end upper_biz_category_nm
+                    , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           else ''
+                      end biz_category_nm
+                    , a.biz_category_cd
+                    , a.biz_menu_nm
+                    , a.description
+                    , a.biz_menu_url
+			   from   hs_biz_menu_mst a INNER JOIN hs_biz_menu_category b on a.biz_category_cd = b.biz_category_cd
+			   where  a.use_yn = 'y'
+			   and    a.biz_menu_role_scd in ('std', 'dept','deptuser')
+			   ) z
+		where 1 = 1
+		and z.biz_menu_cd in (select biz_menu_cd 
+		                      from   hs_menu_dept_map
+		                      where  dept_id = (select dept_id from hs_user_mst where user_id = #{userId})
+		                      union all
+		                      select biz_menu_cd
+		                      from   hs_menu_dept_user_map
+		                      where  user_id = #{userId}
+		                      union all
+		                      select biz_menu_cd
+		                      from   hs_biz_menu_mst
+		                      where  biz_menu_role_scd = 'std'
+		                      )
+		<if test="categoryL != null and categoryL != ''">
+		and z.upper_biz_root_category_nm = #{categoryL}
+		</if>
+		<if test="categoryM != null and categoryM != ''">
+		and z.upper_biz_category_nm = #{categoryM}
+		</if>
+		<if test="categoryS != null and categoryS != ''">
+		and z.biz_category_nm = #{categoryS}
+		</if>
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getHsBizMenuMst -->
+	</select>
+	
+	<select id="getHsBizUserMap" resultType="MenuPermitVO" parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getHsBizUserMap -->
+		select z.biz_menu_cd
+		     , z.biz_menu_type_scd 
+		     , z.upper_biz_root_category_nm 
+		     , z.upper_biz_category_nm 
+		     , z.biz_category_nm
+		     , z.biz_category_cd
+		     , z.biz_menu_nm
+		     , z.description
+		     , z.biz_menu_url
+		from  (select a.biz_menu_cd  
+	    		    , b.biz_menu_type_scd
+	                , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    	   when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    	   when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+                           else ''
+                      end upper_biz_root_category_nm
+	    			, case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                           else ''
+                      end upper_biz_category_nm
+			        , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           else ''
+                      end biz_category_nm
+			        , b.biz_category_cd
+			        , b.biz_menu_nm
+			        , b.description
+			        , b.biz_menu_url
+			   from   hs_menu_dept_user_map a inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+			                                  inner join hs_biz_menu_category c on b.biz_category_cd = c.biz_category_cd 
+			   where  a.user_id = #{userId}
+			   and    a.dept_id = #{deptId}
+			   and    b.use_yn = 'y'
+			   and    b.biz_menu_role_scd = 'deptuser'
+			   ) z
+	  where 1 = 1
+		<if test="categoryL != null and categoryL != ''">
+		and z.upper_biz_root_category_nm = #{categoryL}
+		</if>
+		<if test="categoryM != null and categoryM != ''">
+		and z.upper_biz_category_nm = #{categoryM}
+		</if>
+		<if test="categoryS != null and categoryS != ''">
+		and z.biz_category_nm = #{categoryS}
+		</if>
+		<!-- kr.co.socsoft.permission.service.PermissionDao.getHsBizUserMap -->
+	</select>
+	
+	<delete id="deleteMenuUserMap" parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.deleteMenuUserMap -->
+	 delete from hs_menu_dept_user_map
+  	where user_id = #{userId}
+  	and biz_menu_cd = #{bizMenuCd}
+		<!-- kr.co.socsoft.permission.service.PermissionDao.deleteMenuUserMap -->
+	</delete>
+	
+	<delete id="deleteMenuDeptMap" parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.deleteMenuDeptMap -->
+	 delete from hs_menu_dept_map
+  	where dept_id = #{deptId}
+  	and biz_menu_cd = #{bizMenuCd}
+		<!-- kr.co.socsoft.permission.service.PermissionDao.deleteMenuDeptMap -->
+	</delete>
+	
+	<insert id="setMenuUserMap"  parameterType="map">
+			<!-- kr.co.socsoft.permission.service.PermissionDao.setMenuUserMap -->
+        WITH upsert AS (
+			select #{bizMenuCd} as biz_menu_cd
+		         , (select dept_id  
+		            from hs_user_mst
+		   		    where user_id = #{userId}) as dept_id
+		         , #{userId} as user_id
+		         , #{createId} as create_id
+		         , #{updateId} as update_id
+		), update_option AS (
+			update hs_menu_dept_user_map 
+			set    biz_menu_cd = upsert.biz_menu_cd
+			     , dept_id = upsert.dept_id
+			     , user_id = upsert.user_id
+			     , update_id = upsert.update_id
+			     , update_dt = now()
+			from   upsert 
+			where  hs_menu_dept_user_map.biz_menu_cd = upsert.biz_menu_cd 
+			and    hs_menu_dept_user_map.user_id = upsert.user_id 
+		)
+		insert into hs_menu_dept_user_map -- master
+		select 
+			 upsert.biz_menu_cd
+		   , upsert.dept_id
+		   , upsert.user_id
+		   , upsert.create_id
+		   , now()
+		   , null
+		   , null
+		from   upsert 
+		where  not exists(select 1 
+		                  from   hs_menu_dept_user_map 
+		                  where  hs_menu_dept_user_map.biz_menu_cd = upsert.biz_menu_cd 
+		                  and hs_menu_dept_user_map.user_id = upsert.user_id 
+		                  );
+		 
+        		<!-- kr.co.socsoft.permission.service.PermissionDao.setMenuUserMap -->
+        
+	</insert>
+	
+	<update id="setAdminPermit"  parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.setAdminPermit -->
+		 update hs_user_mst
+		 set    sys_yn = #{sysYn}
+		      , update_id = #{updateId}
+		      , update_dt = now()
+		 where  user_id = #{userId}
+		<!-- kr.co.socsoft.permission.service.PermissionDao.setAdminPermit -->
+ 	
+	</update>
+	
+	<select id="getAllUserMenuPermit" resultType="MenuPermitVO"  parameterType="map">
+		select a.biz_menu_cd  
+			 , b.biz_menu_type_scd
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+                    else ''
+               end upper_biz_root_category_nm
+             , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    else ''
+               end upper_biz_category_nm
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    else ''
+               end biz_category_nm
+		     , b.biz_category_cd
+		     , b.biz_menu_nm
+		     , b.description
+		     , b.biz_menu_url
+	    from   hs_menu_dept_user_map a 
+		inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+		inner join hs_biz_menu_category c on b.biz_category_cd = c.biz_category_cd 
+	    where a.user_id = #{userId}
+	    and   b.use_yn = 'y'
+	    
+	    union
+	    
+		select a.biz_menu_cd  
+		     , b.biz_menu_type_scd
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+                    else ''
+               end upper_biz_root_category_nm
+             , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                    else ''
+               end upper_biz_category_nm
+             , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                    else ''
+               end biz_category_nm
+		     , b.biz_category_cd
+		     , b.biz_menu_nm
+			 , b.description
+			 , b.biz_menu_url
+		from   hs_menu_dept_map a 
+		       inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+			   inner join hs_biz_menu_category c on b.biz_category_cd = c.biz_category_cd 
+		where  a.dept_id = (select dept_id  
+				            from   hs_user_mst
+				   		    where  user_id = #{userId})
+        and    b.use_yn = 'y'
+	</select>
+	
+	<select id="getRootCategory" resultType="MenuPermitVO">
+  
+		select a.upper_biz_root_category_nm, a.upper_biz_root_category_cd
+		from
+		(select    
+		(select biz_category_nm    
+		from hs_biz_menu_category    
+		where biz_category_cd = (   
+		select upper_biz_category_cd    
+		from hs_biz_menu_category   
+		where biz_category_cd = (    
+		select upper_biz_category_cd    
+		from hs_biz_menu_category   
+		where biz_category_cd = c.biz_category_cd   
+		)   
+		)) as upper_biz_root_category_nm   ,
+		(select biz_category_cd    
+		from hs_biz_menu_category    
+		where biz_category_cd = (   
+		select upper_biz_category_cd    
+		from hs_biz_menu_category   
+		where biz_category_cd = (    
+		select upper_biz_category_cd    
+		from hs_biz_menu_category   
+		where biz_category_cd = c.biz_category_cd   
+		)   
+		)) as upper_biz_root_category_cd   
+		from hs_biz_menu_category c
+		) a
+		where a.upper_biz_root_category_cd != ''
+		group by a.upper_biz_root_category_nm, a.upper_biz_root_category_cd
+		order by a.upper_biz_root_category_nm
+	</select>
+	
+	<select id="getUpperCategory" resultType="MenuPermitVO">
+	
+		select a.upper_biz_category_nm, a.upper_biz_category_cd
+		from
+		(select    
+		(select biz_category_nm    
+		from hs_biz_menu_category    
+		where biz_category_cd = (   
+		select upper_biz_category_cd    
+		from hs_biz_menu_category   
+		where biz_category_cd = c.biz_category_cd   
+		)) as upper_biz_category_nm   ,
+		(select biz_category_cd    
+		from hs_biz_menu_category    
+		where biz_category_cd = (   
+		select upper_biz_category_cd    
+		from hs_biz_menu_category   
+		where biz_category_cd = c.biz_category_cd   
+		)) as upper_biz_category_cd   
+		from hs_biz_menu_category c) a
+		where a.upper_biz_category_nm != ''
+		group by a.upper_biz_category_nm, a.upper_biz_category_cd
+		order by a.upper_biz_category_nm
+	</select>
+	
+	<select id="getCategory" resultType="MenuPermitVO">
+	select biz_category_nm,biz_category_cd
+	from hs_biz_menu_category
+	group by biz_category_nm,biz_category_cd
+	order by biz_category_nm
+	</select>
+	
+	<select id="getLogSyncList" resultType="LogSyncUserVO" parameterType="map">
+	select 
+     log_seq
+    ,log_type_scd
+    ,(select detail_nm from hs_detail_code where group_cd='log_type_scd' and detail_cd=log_type_scd) as log_type_scd_nm
+    ,log_msg
+    ,to_char(log_date, 'YYYY-MM-DD HH24:MI:SS') as log_date
+    ,create_id 
+	from hs_user_sync_log
+	where 1 = 1
+	<choose>
+		<when test="stdYm1 != null and stdYm1 != '' and stdYm2 != null and stdYm2 != '' ">
+		<!-- 둘다 있을때  -->
+		and log_date::text between #{stdYm1} and #{stdYm2}
+		</when>
+		<otherwise>
+			<choose>
+				<when test="stdYm1 != null and stdYm1 != '' and (stdYm2 == null or stdYm2 == '' )">
+				<![CDATA[ and log_date::text >= #{stdYm1}  ]]>
+				</when>
+				<when test="stdYm2 != null and stdYm2 != '' and (stdYm1 == null or stdYm1 == '' )">
+				<![CDATA[ and log_date::text <= #{stdYm1} ]]>
+				</when>
+			</choose>
+		</otherwise>
+	</choose>
+			
+	<if test="logType != null and logType != ''">
+	and log_type_scd = #{logType}
+	</if>
+	<if test="key != null and key != ''">
+	and log_msg like '%' || #{key} || '%' 
+	</if>
+	order by log_date desc
+	</select>
+	
+	
+	
+	<select id="getLogSyncExcel" resultType="map" parameterType="map">
+	select row_number() over(order by log_seq desc) log_seq ,* 
+	from (			
+			select 
+		     log_seq
+		    ,log_type_scd
+		    ,(select detail_nm from hs_detail_code where group_cd='log_type_scd' and detail_cd=log_type_scd) as log_type_scd_nm
+		    ,log_msg
+		    ,to_char(log_date, 'YYYY-MM-DD HH24:MI:SS') as log_date
+		    ,create_id 
+			from hs_user_sync_log
+			where 1 = 1
+			<choose>
+				<when test="stdYm1 != null and stdYm1 != '' and stdYm2 != null and stdYm2 != '' ">
+				<!-- 둘다 있을때  -->
+				and log_date::text between #{stdYm1} and #{stdYm2}
+				</when>
+				<otherwise>
+					<choose>
+						<when test="stdYm1 != null and stdYm1 != '' and (stdYm2 == null or stdYm2 == '' )">
+						<![CDATA[ and log_date::text >= #{stdYm1}  ]]>
+						</when>
+						<when test="stdYm2 != null and stdYm2 != '' and (stdYm1 == null or stdYm1 == '' )">
+						<![CDATA[ and log_date::text <= #{stdYm1} ]]>
+						</when>
+					</choose>
+				</otherwise>
+			</choose>
+					
+			<if test="logType != null and logType != ''">
+			and log_type_scd = #{logType}
+			</if>
+			<if test="key != null and key != ''">
+			and log_msg like '%' || #{key} || '%' 
+			</if>
+			order by log_seq desc
+			
+	) a
+	</select>
+	
+	<select id="getLogSyncType" resultType="LogSyncUserVO" parameterType="map">
+	select log_type_scd
+	from hs_user_sync_log
+	group by log_type_scd
+	
+	</select>
+	
+	
+	
+	
+	<select id="getDeptMenuPermit" resultType="MenuPermitVO" parameterType="map">
+		select z.biz_menu_cd
+		     , z.biz_menu_type_scd 
+		     , z.upper_biz_root_category_nm 
+		     , z.upper_biz_category_nm 
+		     , z.biz_category_nm
+		     , z.biz_category_cd
+		     , z.biz_menu_nm
+		     , z.description
+		     , z.biz_menu_url
+	    from  (select a.biz_menu_cd  
+		            , b.biz_menu_type_scd
+		            , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+	                       when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+	                       when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+	                       else ''
+	                  end upper_biz_root_category_nm
+		            , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+                           else ''
+                      end upper_biz_category_nm
+				    , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+                           else ''
+                      end biz_category_nm
+				    , b.biz_category_cd
+				    , b.biz_menu_nm
+				    , b.description
+				    , b.biz_menu_url
+			   from   hs_menu_dept_map a 
+			   inner  join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+			   inner  join hs_biz_menu_category c on b.biz_category_cd = c.biz_category_cd 
+			   where  1 = 1
+			   and    a.dept_id = #{deptId}
+			   and    b.use_yn = 'y') z
+		  where 1 = 1
+		<if test="categoryL != null and categoryL != ''">
+		and z.upper_biz_root_category_nm = #{categoryL}
+		</if>
+		<if test="categoryM != null and categoryM != ''">
+		and z.upper_biz_category_nm = #{categoryM}
+		</if>
+		<if test="categoryS != null and categoryS != ''">
+		and z.biz_category_nm = #{categoryS}
+		</if>
+	</select>
+	
+	<insert id="setMenuDeptMap"  parameterType="map">
+		<!-- kr.co.socsoft.permission.service.PermissionDao.setMenuDeptMap -->
+      
+        WITH upsert AS (
+			select #{bizMenuCd} as biz_menu_cd
+			     , #{deptId} as dept_id
+		         , #{createId} as create_id
+		         , #{updateId} as update_id
+		), update_option AS (
+			update hs_menu_dept_map 
+			set    biz_menu_cd = upsert.biz_menu_cd
+			     , dept_id = upsert.dept_id
+			     , update_id = upsert.update_id
+			     , update_dt = now()
+			from   upsert 
+			where  hs_menu_dept_map.biz_menu_cd = upsert.biz_menu_cd 
+			and hs_menu_dept_map.dept_id = upsert.dept_id 
+		)
+		insert into hs_menu_dept_map -- master
+		select upsert.biz_menu_cd
+		     , upsert.dept_id
+		     , upsert.create_id
+		     , now()
+		     , null
+		     , null
+		from   upsert 
+		where  not exists(select 1 
+		                  from   hs_menu_dept_map 
+		                  where  hs_menu_dept_map.biz_menu_cd = upsert.biz_menu_cd 
+		                  and hs_menu_dept_map.dept_id = upsert.dept_id 
+		                  );
+		 
+        		<!-- kr.co.socsoft.permission.service.PermissionDao.setMenuDeptMap -->
+        
+	</insert>
+	
+	
+	<update id="setNewUserPassword" parameterType="map">
+	update hs_user_mst
+	set    user_pwd =  encode(#{password}::bytea, 'base64')::text
+	     , update_id = #{updateId}
+	     , update_dt = now()
+	where user_id = #{userId}
+	
+	</update>
+	
+	<insert id="triggerUserSync">
+	select public.sp_hscity_user_info_sync('')
+	</insert>
+	
+	<select id="getUserInfoToId"  resultType="UserPermitVO" parameterType="String">
+	select 
+	a.user_id,
+	a.user_name,
+	a.dept_id,
+	a.dept_name,
+	(select dept_name from hs_user_dept where dept_id = (select upper_dept_id from hs_user_dept where dept_id = a.dept_id)) as upper_dept_name,
+	a.sys_yn
+	 from hs_user_mst a
+	where user_id = #{userId}
+	</select>
+	
+</mapper>

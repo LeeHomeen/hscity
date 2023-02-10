@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.ArrAnalsDao">
+	
+	<!-- 요일별 승차인원 -->
+	<select id="selectArrWeekList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[	
+			select 
+				   '2-5-1' as mid,
+				   line_id as lid, bus_num as div, 
+				   sum(d1) as d1,
+				   sum(d2) as d2,
+				   sum(d3) as d3,
+				   sum(d4) as d4,
+				   sum(d5) as d5,
+				   sum(d6) as d6,
+				   sum(d7) as d7,
+				   sum(d1+d2+d3+d4+d5) as d8,
+				   sum(d6+d7) as d9,
+				   case when ( sum(d1+d2+d3+d4+d5) = 0 ) or (sum(d6+d7) = 0) 
+				   then 0 else floor(round(sum(d6+d7) / sum(d1+d2+d3+d4+d5), 2) * 100) end as d10
+			from(
+			
+				select line_id, bus_num, 
+					   case when base_day = '월' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d1,
+					   case when base_day = '화' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d2,
+					   case when base_day = '수' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d3,
+					   case when base_day = '목' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d4,
+					   case when base_day = '금' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d5,
+					   case when base_day = '토' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d6,
+					   case when base_day = '일' then sum(coalesce(s_pop, 0)+coalesce(f_pop, 0)+
+														coalesce(t1_spop, 0)+coalesce(t1_fpop, 0)+
+														coalesce(t2_spop, 0)+coalesce(t2_fpop, 0)+
+														coalesce(t3_spop, 0)+coalesce(t3_fpop, 0)+
+														coalesce(t4_spop, 0)+coalesce(t4_fpop, 0)) else 0 end as d7
+				from hst_ana_sta_cnt
+				where line_id in (${bus}) 
+				group by line_id, bus_num, base_day 
+				
+			)part1
+			group by line_id, bus_num
+		]]>
+	</select>	
+	
+	
+	<!-- 청두 비청두 승차인원 -->
+	<select id="selectArrTimeList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select '2-5-2' as mid, lid, 
+				   case when div is null then '번호없음' else div end as div,
+				    p00,p01,p02,p03,p04,p05,p06,p07,p08,p09,p10,
+					p11,p12,p13,p14,p15,p16,p17,p18,p19,p20,p21,
+					p22,p23, 
+				   tot, peak, 
+				   case when (peak = 0 or tot = 0) then 0 else floor(round((peak/tot),2)*100) end as rat
+			from(
+				select  lid, div, 
+						sum(spop00) as p00, sum(spop01) as p01,	
+						sum(spop02) as p02,	sum(spop03) as p03,
+						sum(spop04) as p04,	sum(spop05) as p05,
+						sum(spop06) as p06,	sum(spop07) as p07,
+						sum(spop08) as p08, sum(spop09) as p09,
+						sum(spop10) as p10,	sum(spop11) as p11,
+						sum(spop12) as p12,	sum(spop13) as p13,
+						sum(spop14) as p14,	sum(spop15) as p15,
+						sum(spop16) as p16,	sum(spop17) as p17,
+						sum(spop18) as p18,	sum(spop19) as p19,
+						sum(spop20) as p20,	sum(spop21) as p21,
+						sum(spop22) as p22,	sum(spop23) as p23,
+						sum(spop07+spop08+spop09+spop17+spop18+spop19) as peak,
+						sum(spop) as tot
+				from(
+					select line_id as lid, bus_num as div, 
+						case when time = '00' then sum(coalesce(s_pop,0)) else 0 end as spop00, 
+						case when time = '01' then sum(coalesce(s_pop,0)) else 0 end as spop01, 
+						case when time = '02' then sum(coalesce(s_pop,0)) else 0 end as spop02,
+						case when time = '03' then sum(coalesce(s_pop,0)) else 0 end as spop03,
+						case when time = '04' then sum(coalesce(s_pop,0)) else 0 end as spop04,
+						case when time = '05' then sum(coalesce(s_pop,0)) else 0 end as spop05,
+						case when time = '06' then sum(coalesce(s_pop,0)) else 0 end as spop06,
+						case when time = '07' then sum(coalesce(s_pop,0)) else 0 end as spop07, 
+						case when time = '08' then sum(coalesce(s_pop,0)) else 0 end as spop08, 
+						case when time = '09' then sum(coalesce(s_pop,0)) else 0 end as spop09, 
+						case when time = '10' then sum(coalesce(s_pop,0)) else 0 end as spop10,
+						case when time = '11' then sum(coalesce(s_pop,0)) else 0 end as spop11, 
+						case when time = '12' then sum(coalesce(s_pop,0)) else 0 end as spop12, 
+						case when time = '13' then sum(coalesce(s_pop,0)) else 0 end as spop13, 
+						case when time = '14' then sum(coalesce(s_pop,0)) else 0 end as spop14,
+						case when time = '15' then sum(coalesce(s_pop,0)) else 0 end as spop15, 
+						case when time = '16' then sum(coalesce(s_pop,0)) else 0 end as spop16, 
+						case when time = '17' then sum(coalesce(s_pop,0)) else 0 end as spop17, 
+						case when time = '18' then sum(coalesce(s_pop,0)) else 0 end as spop18, 
+						case when time = '19' then sum(coalesce(s_pop,0)) else 0 end as spop19, 
+						case when time = '20' then sum(coalesce(s_pop,0)) else 0 end as spop20, 
+						case when time = '21' then sum(coalesce(s_pop,0)) else 0 end as spop21, 
+						case when time = '22' then sum(coalesce(s_pop,0)) else 0 end as spop22, 
+						case when time = '23' then sum(coalesce(s_pop,0)) else 0 end as spop23, 
+						sum(coalesce(s_pop,0)) as spop
+					from hst_ana_sta_cnt
+					where line_id in (${bus})
+					group by line_id, bus_num, time
+				)part1
+				group by lid, div
+			)part2
+		]]>
+	</select>
+</mapper>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE form-validation PUBLIC 
+    "-//Apache Software Foundation//DTD Commons Validator Rules Configuration 1.1//EN" 
+    "http://jakarta.apache.org/commons/dtds/validator_1_1.dtd">
+
+<form-validation>
+	<formset>
+		<form name="dataUploadScheduleVO">
+			<field property="tableId" depends="required">
+				<arg0 key="dataUploadScheduleVO.tableId" />
+			</field>
+			<field property="shceduleDay" depends="required">
+				<arg0 key="dataUploadScheduleVO.shceduleDay" />
+			</field>
+			<field property="scheduleHour" depends="required">
+				<arg0 key="dataUploadScheduleVO.scheduleHour" />
+			</field>
+			<field property="scheduleMinute" depends="required">
+				<arg0 key="dataUploadScheduleVO.scheduleMinute" />
+			</field>
+			<field property="upldFileNm" depends="required">
+				<arg0 key="dataUploadScheduleVO.upldFileNm" />
+			</field>
+			<field property="upldFileEncoding" depends="required">
+				<arg0 key="dataUploadScheduleVO.upldFileEncoding" />
+			</field>
+		</form>
+	</formset>
+</form-validation>

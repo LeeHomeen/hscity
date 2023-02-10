@@ -1,0 +1,22 @@
+@charset "utf-8";
+
+.btn.sr3 a{
+	color:#ffffff;
+	    font-weight: bold;
+}
+
+.saveBtn .btn {
+    float: right;
+    margin-right: 15px;
+}
+select.category-select{
+	width: 140px;
+}
+
+.stdYm{
+	width: 100px;
+}
+
+.border-td-r{
+	border-right: 1px solid #bac3d4;
+}    

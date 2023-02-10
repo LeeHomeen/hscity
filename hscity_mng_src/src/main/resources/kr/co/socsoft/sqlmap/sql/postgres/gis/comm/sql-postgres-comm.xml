@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.comm.service.CommDao">
+	<!-- 읍면동 기준정보 가져오기 -->
+	<select id="selectStdDong" parameterType="commVO" resultType="egovMap">
+<![CDATA[
+		select gubun_nm as gnm, gubun as chk 
+		from hm_bnd_adm_dong_pg_a dong
+        group by gubun_nm, gubun
+		]]>
+</select>
+	
+	<!-- 읍면동 정보 가져오기 -->
+	<select id="selectDongList" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select adm_cd as admcd, adm_nm as admnm 
+			from hm_bnd_adm_dong_pg_a 
+			where gubun = #{std}
+			and adm_cd like '41590%'
+			order by adm_nm asc
+		]]>
+	</select>
+	
+	<!-- 읍면동 정보 가져오기 (법정동)-->
+	<select id="selectCstDongList" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select emd_cd as admcd, emd_kor_nm as admnm
+			from hm_tl_scco_emd_a
+			where emd_cd like '41590%'
+			order by emd_kor_nm
+		]]>
+	</select>
+	
+	<!-- 읍면동 구역 AWK 가져오기 -->
+	<select id="selectDongWkt" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select ST_ASTEXT(ST_Transform(ST_UNION(geom), replace(${coord}::text,'900913','3857')::int)) as wkt
+			from hm_bnd_adm_dong_pg_a 
+			where adm_cd in (${dongcd})
+			and gubun = #{std}
+		]]>
+	</select>	
+	
+	<!-- 읍면동 구역 AWK 가져오기 (법정동)-->
+	<select id="selectCstDongWkt" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select ST_ASTEXT(ST_Transform(ST_UNION(geom), replace(${coord}::text,'900913','3857')::int)) as wkt
+			from hm_tl_scco_emd_a 
+			where emd_cd in (${dongcd})			
+		]]>
+	</select>	
+	
+	<!-- 저장된 분석영역 정보 가져오기 -->
+	<select id="selectBookmarkList" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select seq, area_nm as name, ST_ASTEXT(geom) as geom  
+			from hs_gis_analysis_area_a
+			where user_id = #{userid}		
+		]]>
+		<if test="seq != null and seq != ''">
+			and seq = ${seq}
+		</if>
+	</select>
+	
+	<!-- 분석영역정보 저장 -->
+	<insert id="insertBookmark" parameterType="commVO">
+	    <![CDATA[
+		    insert into hs_gis_analysis_area_a
+		    (seq, user_id, area_nm, create_id, create_dt, geom) 
+		    values
+		    ( 
+		    	 (select (coalesce(max(seq), 0) + 1) as seq from hs_gis_analysis_area_a), 
+		    	#{userid}, #{name}, 
+		    	#{userid}, now(), ST_Transform(ST_Multi(ST_GeomFromText(#{geom}, replace(${coord}::text,'900913','3857')::int)), 4326)
+		   	) 
+	    ]]>
+	</insert>
+	
+	<!-- 분석영역정보 수정 -->
+	<update id="updateBookmark" parameterType="commVO">
+		<![CDATA[
+			UPDATE 
+				hs_gis_analysis_area_a
+			set 
+				area_nm = #{name},
+				geom = #{geom},
+				update_id = #{userid},
+				update_dt = now()
+			where user_id = #{userid}
+			and seq = ${seq}
+		]]>
+	</update>
+	
+	<!-- 분석영역정보 삭제 -->
+	<update id="deleteBookmark" parameterType="commVO">
+		<![CDATA[
+			delete from hs_gis_analysis_area_a 
+			where user_id = #{userid}
+			and seq = ${seq} 
+		]]>
+	</update>
+	
+	<!-- 업종분류 대분류 -->
+	<select id="selectLclasList" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select lclas_cd as cd, lclas_nm as nm
+			from sh_card_hs_induty_code
+			group by lclas_cd, lclas_nm
+			order by lclas_cd asc
+		]]>
+	</select>
+	
+	<!-- 업종분류 중분류 -->
+	<select id="selectMclasList" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select mlsfc_cd as cd, mlsfc_nm as nm
+			from sh_card_hs_induty_code
+		]]>
+		<choose>
+			<when test="cd != null and cd != ''">
+				where mlsfc_cd like #{cd}||'%'
+			</when>
+			<otherwise>
+				where mlsfc_cd like #{cd}
+			</otherwise>
+		</choose>
+		<![CDATA[			 
+			group by mlsfc_cd, mlsfc_nm
+			order by mlsfc_cd asc
+		]]>
+	</select>
+	
+	<!-- 업종분류 소분류 -->
+	<select id="selectSclasList" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select sclas_cd as cd, sclas_nm as nm
+			from sh_card_hs_induty_code
+		]]>
+		<choose>
+			<when test="cd != null and cd != ''">
+				where sclas_cd like #{cd}||'%'
+			</when>
+			<otherwise>
+				where sclas_cd like #{cd}
+			</otherwise>
+		</choose>
+		<![CDATA[
+			group by sclas_cd, sclas_nm
+			order by sclas_cd asc
+		]]>
+	</select>
+	
+	<!-- 엑셀로그 저장 -->
+	<insert id="insertExlLog" parameterType="logVO">
+		<![CDATA[
+			insert into hs_gis_data_down_log
+			(log_seq, gubun, user_id, download_dt, use_purpose, sec_agreement)
+			values
+			(
+				(select coalesce((max(log_seq) + 1), 1) from hs_gis_data_down_log),
+				#{gubun}, #{uid}, now(), #{usepps}, #{sec}
+			)
+		]]>		
+	</insert>
+	
+	<!-- 테이블 유무 조회 -->
+	<select id="selectTableInfo" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+			select table_id as tid, unit 
+			from sp_hscity_get_table_split_info(#{tbl})
+		]]>
+	</select>
+	
+	<!-- 테이블 기간 조회 -->
+	<select id="selectTblPeriod" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+		select 
+		case when length(unit) = 6 then substr(unit,1,4) || '년' || substr(unit, 5,2) || '월' else 
+				case when length(unit) = 4 then unit || '년' end end as unit
+		from(
+			select *
+				from(
+					select unit
+					from sp_hscity_get_table_split_info(#{tbl})
+					order by unit asc
+					limit 1
+				)part1
+				union
+				select *
+				from(
+					select unit
+					from sp_hscity_get_table_split_info(#{tbl})
+					order by unit desc
+					limit 1
+				)part2
+			)part3
+			group by unit
+			order by unit
+		]]>
+	</select>
+	
+	<!-- 기준년월 최근 데이터 가져오기 -->
+	<select id="selectRecentPeriod" parameterType="commVO" resultType="egovMap">
+		<choose>
+			<when test="tbl != null and tbl != '' and cd != '1-4'.toString() and cd != '1-5'.toString()">
+				select
+					std_ym 
+				from ${tbl} 
+					order by std_ym desc 
+					limit 1
+			</when>
+			<when test="tbl != null and tbl != '' and cd == '1-5'.toString()">
+				select 
+					ts_ym as std_ym 
+				from ${tbl} 
+					order by ts_ym desc 
+					limit 1
+			</when>
+			<when test="tbl != null and tbl != '' and cd == '1-4'.toString()">
+				select 
+					ts_d as std_ym
+				from ${tbl} 
+					order by ts_d desc 
+					limit 1
+			</when>
+			<otherwise>
+				select to_char(now(),'YYYYMM') as std_ym
+			</otherwise>
+		</choose>
+	</select>
+	
+	<!-- 버스 노선 타입 (일반형 우선순위)-->
+	<select id="selectBusType" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+		select case when bus_type = '일반형' then '1' else '0' end rid, 
+				bus_type as btype
+		from(
+			select 
+		    	   bus_type
+			from hst_ana_busline_pline
+			group by bus_type
+		)part1
+		order by rid desc
+		]]>
+	</select>
+	
+	<!-- 버스 노선  -->
+	<select id="selectBusLine" parameterType="commVO" resultType="egovMap">
+		<![CDATA[
+		select line_nm as lid, bus_nm as bnm, bus_type as btype
+		from hst_ana_busline_pline
+		where bus_type = #{btype}
+		group by line_nm, bus_nm, bus_type
+		order by bus_nm
+		]]>
+	</select>		
+</mapper>

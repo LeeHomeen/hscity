@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.manage.file.service.impl.FileMapper">
+
+    <resultMap id="bbsAttFileVOResultMap" type="bbsAttFileVO">
+        <id property="fileSeq" column="file_seq"/>
+        <result property="attFileMngSeq" column="att_file_mng_seq"/>
+        <result property="fileNm" column="file_nm"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="fileData" column="file_data"/>
+        <result property="createId" column="create_id"/>
+        <result property="createDt" column="create_dt"/>
+        <result property="updateId" column="update_id"/>
+        <result property="updateDt" column="update_dt"/>
+    </resultMap>
+
+    <insert id="insertBbsAttFileMng" parameterType="bbsAttFileMngVO">
+        <![CDATA[
+          /* insertBbsAttFileMng */
+          insert into hs_bbs_att_file_mng (
+            att_file_mng_seq,
+            create_id,
+            create_dt
+          )
+          values (
+            #{attFileMngSeq},
+            #{createId},
+            now()
+          )
+        ]]>
+    </insert>
+
+    <insert id="insertBbsAttFile">
+        <![CDATA[
+            /* insertBbsAttFile */
+            insert into hs_bbs_att_file(
+              att_file_mng_seq,
+              file_nm,
+              file_size,
+              file_data,
+              create_id,
+              create_dt
+            )
+            values (
+              #{attFileMngSeq},
+              #{fileNm},
+              #{fileSize},
+              #{fileData,jdbcType=BINARY},
+              #{createId},
+              now()
+            )
+        ]]>
+    </insert>
+
+    <select id="selectBbsAttFile" resultType="bbsAttFileVO" parameterType="bbsAttFileVO">
+        <![CDATA[
+          /* selectBbsAttFile */
+          select file_seq, att_file_mng_seq, file_nm, file_size, file_data, create_id,
+               create_dt, update_id, update_dt
+          from hs_bbs_att_file
+          where file_seq = #{fileSeq} and att_file_mng_seq = #{attFileMngSeq}
+        ]]>
+    </select>
+
+    <delete id="deleteFiles_back" parameterType="bbsAttFileVO">
+        <![CDATA[
+          /* deleteFiles */
+          delete from hs_bbs_att_file where att_file_mng_seq = #{attFileMngSeq} and file_seq = #{fileSeq}
+        ]]>
+    </delete>
+    
+    <delete id="deleteFiles" parameterType="bbsAttFileVO">
+        <![CDATA[
+          /* deleteFiles */
+          delete from hs_bbs_att_file where file_seq = #{fileSeq}
+        ]]>
+    </delete>
+</mapper>

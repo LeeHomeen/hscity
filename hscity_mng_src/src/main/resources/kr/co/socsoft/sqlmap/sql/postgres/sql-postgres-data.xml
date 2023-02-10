@@ -1,0 +1,790 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.data.service.DataDao">
+	
+	<select id="getGyeonggiDataLinkTableList" resultType="dataLinkVO">
+		select a.table_id
+		     , a.table_nm
+		from   hs_data_table_info a 
+		where  a.data_conn_scd = 'ggapi';
+	</select>
+	
+	<select id="getGyeonggiOpenapiList" resultType="dataLinkVO" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.data_type_scd
+		     , a.openapi_url
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.openapi_time_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'openapi_time_scd' and detail_cd = a.openapi_time_scd) as openapi_time_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  a.data_conn_scd = 'ggapi'
+		<if test="dataUpdPerScd != null and dataUpdPerScd != ''">
+		and    a.data_upd_per_scd = #{dataUpdPerScd}
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		<if test="searchText == ''">
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%')
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	
+	
+		<select id="getGyeonggiOpenapiExcel" resultType="map" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.openapi_url
+		     , a.openapi_time_scd
+             , (select detail_nm from hs_detail_code where group_cd = 'openapi_time_scd' and detail_cd = a.openapi_time_scd) as openapi_time_scd_nm
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.data_type_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_type_scd' and detail_cd = a.data_type_scd) as data_type_scd_nm
+		     , a.data_conn_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = a.data_conn_scd) as data_conn_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(now() - a.last_upload_dt, 'dd일HH24시간 경과') as status
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.ori_data_owner
+		     , a.ori_data_mng_nm
+		     , a.ori_data_mng_tel
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  1 = 1
+		and  a.data_conn_scd = 'ggapi'
+			<if test="dataUpdPerScd != null and dataUpdPerScd != ''">
+		and    a.data_upd_per_scd = #{dataUpdPerScd}
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		<if test="searchText == ''">
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%')
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	
+	
+	
+	<select id="getRightsMinwonLinkList" resultType="dataLinkVO" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.data_type_scd
+		     , a.openapi_url
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.openapi_time_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'openapi_time_scd' and detail_cd = a.openapi_time_scd) as openapi_time_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  a.data_conn_scd = 'minwon002'
+		<if test="dataUpdPerScd != null and dataUpdPerScd != ''">
+		and    a.data_upd_per_scd = #{dataUpdPerScd}
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		<if test="searchText == ''">
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%')
+		</if>
+		and a.use_yn = 'y'
+	</select>
+	
+	
+	
+	<select id="getRightsMinwonLinkExcel" resultType="map" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.openapi_url
+		     , a.openapi_time_scd
+             , (select detail_nm from hs_detail_code where group_cd = 'openapi_time_scd' and detail_cd = a.openapi_time_scd) as openapi_time_scd_nm
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.data_type_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_type_scd' and detail_cd = a.data_type_scd) as data_type_scd_nm
+		     , a.data_conn_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = a.data_conn_scd) as data_conn_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(now() - a.last_upload_dt, 'dd일HH24시간 경과') as status
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.ori_data_owner
+		     , a.ori_data_mng_nm
+		     , a.ori_data_mng_tel
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  1 = 1
+		and  a.data_conn_scd = 'minwon002'
+			<if test="dataUpdPerScd != null and dataUpdPerScd != ''">
+		and    a.data_upd_per_scd = #{dataUpdPerScd}
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		<if test="searchText == ''">
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%')
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	
+	<select id="getDataStatusList" resultType="dataLinkVO" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.data_type_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_type_scd' and detail_cd = a.data_type_scd) as data_type_scd_nm
+		     , a.data_conn_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = a.data_conn_scd) as data_conn_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(now() - a.last_upload_dt, 'dd일HH24시간 경과') as status
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  1 = 1
+		<if test="dataConnScd != null and dataConnScd != ''">
+		and    a.data_conn_scd = #{dataConnScd}
+		</if>
+		<if test="dataUpdPerScd != null and dataUpdPerScd != ''">
+		and    a.data_upd_per_scd = #{dataUpdPerScd}
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	
+	<select id="getDataStatusExcel" resultType="map" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.data_type_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_type_scd' and detail_cd = a.data_type_scd) as data_type_scd_nm
+		     , a.data_conn_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = a.data_conn_scd) as data_conn_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(now() - a.last_upload_dt, 'dd일HH24시간 경과') as status
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.ori_data_owner
+		     , a.ori_data_mng_nm
+		     , a.ori_data_mng_tel
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  1 = 1
+		<if test="dataConnScd != null and dataConnScd != ''">
+		and    a.data_conn_scd = #{dataConnScd}
+		</if>
+		<if test="dataUpdPerScd != null and dataUpdPerScd != ''">
+		and    a.data_upd_per_scd = #{dataUpdPerScd}
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	
+	<select id="getDataTableColumnList" resultType="dataVO" parameterType="map">
+		select a.table_id
+		     , a.column_seq
+		     , a.column_id
+		     , a.column_nm
+		     , a.description
+		     , a.std_form_use_yn
+		     , a.use_yn
+		     , case when a.logt_yn = 'y' then 'logt' when a.lat_yn = 'y' then 'lat' else 'X' end gisType
+		     , 'r' as crud
+		from   hs_data_table_column_info a 
+		where  a.table_id = #{tableId}
+		order by a.column_seq;
+	</select>
+	
+	<update id="openapiConfSave" parameterType="dataVO">
+		update hs_data_table_info
+		set    openapi_url = #{openapiUrl}
+		     , openapi_time_scd = #{openapiTimeScd}
+		     , update_id = #{updateId}
+		     , update_dt = now()
+		where  table_id = #{tableId};		
+	</update>
+	
+	<insert id="gyeonggiOpenapiKeySave" parameterType="dataLinkVO">
+		insert into hs_ggdream_openapi_key(openapi_key, create_id, create_dt)
+		values(#{openapiKey}, #{updateId}, now());
+	</insert>
+	
+	<select id="getGyeonggiOpenapiKey" resultType="String">
+		select openapi_key
+		from   hs_ggdream_openapi_key
+		order by create_dt desc
+		limit 1;
+	</select>
+	
+	<select id="getOpenapiTableList" resultType="dataVO">
+		<![CDATA[
+			select a.table_id
+			     , a.table_nm
+			     , a.data_type_scd
+			     , a.data_conn_scd
+			     , a.openapi_url
+			     , (select openapi_key from hs_ggdream_openapi_key order by create_dt desc limit 1) as openapi_key
+			     , a.data_file_path
+			     , a.mng_std_ymd_scd
+			     , a.insert_std_ymd_yn
+			     , (select count(*) from hs_data_table_column_info where table_id = a.table_id and std_form_use_yn = 'y') as std_form_count
+			from   hs_data_table_info a
+			where  a.data_conn_scd = 'ggapi'
+			and    a.use_yn = 'y';
+		]]>
+	</select>
+	
+	<select id="getRightsMinwonTableList" resultType="dataVO">
+		<![CDATA[
+			select a.table_id
+			     , a.table_nm
+			     , a.data_type_scd
+			     , a.data_conn_scd
+			     , a.openapi_url
+			     , '' as openapi_key
+			     , a.data_file_path
+			     , a.mng_std_ymd_scd
+			     , a.insert_std_ymd_yn
+			     , (select count(*) from hs_data_table_column_info where table_id = a.table_id and std_form_use_yn = 'y') as std_form_count
+			from   hs_data_table_info a
+			where  a.data_conn_scd = 'minwon002'
+			and    a.use_yn = 'y';
+		]]>
+	</select>
+	
+	<select id="getDataTableInfo" parameterType="String" resultType="dataVO">
+		<![CDATA[
+			select a.table_id
+			     , a.table_nm
+			     , a.data_gubun_nm
+			     , a.description
+			     , case when a.data_type_scd = 'point' then 'gis' else 'nor' end gis_type
+			     , a.data_type_scd
+			     , (select detail_nm from hs_detail_code where group_cd = 'data_type_scd' and detail_cd = a.data_type_scd) as data_type_scd_nm
+			     , a.data_conn_scd
+			     , (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = a.data_conn_scd) as data_conn_scd_nm
+			     , a.openapi_url
+			     , (select openapi_key from hs_ggdream_openapi_key order by create_dt desc limit 1) as openapi_key
+			     , a.data_file_path
+			     , a.mng_std_ymd_scd
+			     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+			     , a.data_upd_per_scd
+			     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+			     , a.split_table_scd
+			     , a.ori_data_owner
+			     , a.ori_data_mng_nm
+			     , a.ori_data_mng_tel
+			     , a.ori_data_mng_email
+			     , a.insert_std_ymd_yn
+			     , a.use_yn
+			     , a.rmk
+			     , (select count(*) from hs_data_table_column_info where table_id = a.table_id and std_form_use_yn = 'y') as std_form_count
+			     , 'U' as crud
+			     , 'y' as confirm_table_yn
+			     , a.table_id as confirm_table_id
+			from   hs_data_table_info a
+			where  a.table_id = #{tableId}
+			and a.use_yn = 'y';
+		]]>
+	</select>
+	
+	<select id="getDataUploadUser" parameterType="String" resultType="dataVO">
+		<![CDATA[
+			select a.table_id
+			     , a.user_id as upload_user_id
+			     , (select user_name from hs_user_mst where user_id = a.user_id) as upload_user_name
+			     , (select dept_name from hs_user_mst where user_id = a.user_id) as upload_user_dept_name
+			from   hs_db_upld_user a
+			where  a.table_id = #{tableId};
+		]]>
+	</select>
+	
+	<select id="getDataTableColumnInfo" parameterType="String" resultType="dataVO">
+		<![CDATA[
+			select a.column_id
+			     --, replace(a.column_id, '_', '') as column_alias_id
+			     , replace(replace(a.column_id, '_', ''), 'scd', '') as column_alias_id
+			     , a.std_form_use_yn
+			     , (select data_type from information_schema.columns where table_name = #{tableId} and column_name = a.column_id) as column_type
+			     , case when a.logt_yn = 'y' then 'x' when a.lat_yn = 'y' then 'y' else '' end spot
+			from   hs_data_table_column_info a
+			where  a.table_id = #{tableId}
+			and    a.std_form_use_yn = 'y'
+			order by a.column_seq;
+		]]>
+	</select>
+	
+	<select id="getDataTableFixedColumnInfo" parameterType="String" resultType="dataVO">
+		<![CDATA[
+			select a.column_id
+			     , a.std_form_use_yn
+			     , (select data_type from information_schema.columns where table_name = #{tableId} and column_name = a.column_id) as column_type
+			     , case when a.logt_yn = 'y' then 'x' when a.lat_yn = 'y' then 'y' else '' end spot
+			from   hs_data_table_column_info a
+			where  a.table_id = #{tableId}
+			and    a.std_form_use_yn = 'n'
+			order by a.column_seq;
+		]]>
+	</select>
+	
+	<select id="getSpotColumnInfo" parameterType="String" resultType="dataVO">
+		<![CDATA[
+			select
+			       (select column_id
+			        from   hs_data_table_column_info a
+			        where  a.table_id = #{tableId}
+			        and    a.logt_yn = 'y') as spot_x
+			     , (select column_id
+			        from   hs_data_table_column_info a
+			        where  a.table_id = #{tableId}
+			        and    a.lat_yn = 'y') as spot_y;
+		]]>
+	</select>
+	
+	<insert id="insertGyeonggiData" parameterType="dataVO">
+		${sql};
+	</insert>
+	
+	<insert id="saveDataCsv" parameterType="dataVO">
+		${sql};
+	</insert>
+	
+	<insert id="insretCsvToTable" parameterType="dataVO">
+	<!-- 
+	 select sp_hscity_textdata_upload_manual(#{tableId}, #{updateId}, #{saveFileNm}, 'euc-kr', #{stdYm}, '');
+	 -->
+	 select sp_hscity_textdata_upload_manual(#{tableId}, #{updateId}, #{saveFileNm}, #{encodingType}, #{stdYm}, '');
+	</insert>
+	
+	<insert id="saveGyeonggiData" parameterType="java.util.List">
+		<foreach item="item" collection="list" separator="">
+			${item};
+		</foreach>
+	</insert>
+	
+	<insert id="deleteLinkData" parameterType="dataVO">
+		delete from ${tableId} where ${stdColumn} = #{stdYm}; 
+	</insert>
+	 
+	<insert id="insertDataUpldLog" parameterType="dataUpldLogVO">
+		insert into hs_db_upld_log (table_id, table_nm, data_conn_scd, log_type_scd, log_date, log_msg, create_id)
+		values(#{tableId}, #{tableNm}, #{dataConnScd}, #{logTypeScd}, now(), #{logMsg}, #{createId});
+	</insert>
+	
+	<select id="getExcelUploadTables" resultType="dataVO">
+		select * 
+		from hs_data_table_info
+		where data_conn_scd = 'excel';
+	</select>
+	
+	<select id="getColumnsInTables" resultType="dataVO" parameterType="String">
+		select 
+			column_seq as column_seq,
+			column_id as column_id,
+			column_nm as column_nm
+		from hs_data_table_column_info
+		where  table_id = #{tableId}
+		and    std_form_use_yn = 'y'
+		order by column_seq
+		 
+	</select> 
+	
+	<insert id="saveDataTableColumn" parameterType="java.util.List">
+		<foreach item="item" collection="list" separator="">
+			with merge_data as (
+				select #{item.tableId} as tableId
+				     , #{item.columnId} as columnId
+				     , #{item.columnNm} as columnNm
+				     , #{item.description} as description
+				     , #{item.stdFormUseYn} as stdFormUseYn
+				     , #{item.useYn} as useYn
+				     , coalesce(#{item.gisType}, 'x') as gisType
+				     , #{item.createId} as createId
+				     , now() as createDt
+				     , #{item.updateId} as updateId
+				     , now() as updateDt  
+			), update_option as ( 
+						update hs_data_table_column_info
+						set    column_nm = merge_data.columnNm
+						     , std_form_use_yn = merge_data.stdFormUseYn
+						     , description = merge_data.description
+						     , use_yn = merge_data.useYn
+						     , logt_yn = (case when merge_data.gisType = 'logt' then 'y' else 'x' end)
+						     , lat_yn = (case when merge_data.gisType = 'lat' then 'y' else 'x' end)
+						     , update_dt = now()
+						from   merge_data
+						where  hs_data_table_column_info.table_id = merge_data.tableId
+						and    hs_data_table_column_info.column_id = merge_data.columnId
+			)
+			insert into hs_data_table_column_info
+			(
+			  table_id
+			, column_seq
+			, column_id
+			, column_nm
+			, description
+			, std_form_use_yn
+			, logt_yn
+			, lat_yn
+			, use_yn
+			, create_id
+			, create_dt
+			)
+			select merge_data.tableId
+			     , (select coalesce(max(column_seq), 0) + 1 from hs_data_table_column_info where table_id = merge_data.tableId)
+			     , merge_data.columnId
+			     , merge_data.columnNm
+			     , merge_data.description
+			     , merge_data.stdFormUseYn
+			     , (case when merge_data.gisType = 'logt' then 'y' else 'x' end)
+			     , (case when merge_data.gisType = 'lat' then 'y' else 'x' end)
+			     , merge_data.useYn
+			     , merge_data.createId
+			     , merge_data.createDt
+			from   merge_data
+			where  not exists(select 1 
+		                      from   hs_data_table_column_info 
+		                      where  hs_data_table_column_info.table_id = merge_data.tableId
+		                      and    hs_data_table_column_info.column_id = merge_data.columnId
+				              );
+			;
+		</foreach>
+	</insert>
+	
+	
+	<insert id="deleteDataTableColumn" parameterType="java.util.List">
+		<foreach item="item" collection="list" separator="">
+			delete 
+			from   hs_data_table_column_info
+			where  table_id = #{item.tableId}
+			and    column_seq = #{item.columnSeq}::numeric
+			and    column_id = #{item.columnId}
+			;
+		</foreach>
+	</insert>
+	
+	<update id="saveDataTableInfo" parameterType="dataVO">
+		with merge_data as (
+				select #{tableId} as tableId
+				     , #{tableNm} as tableNm
+				     , #{description} as description
+				     , #{dataGubunNm} as dataGubunNm
+				     , #{dataTypeScd} as dataTypeScd
+				     , #{dataConnScd} as dataConnScd
+				     , #{openapiUrl} as openapiUrl
+		             , #{mngStdYmdScd} as mngStdYmdScd
+		             , #{insertStdYmdYn} as insertStdYmdYn
+		             , #{splitTableScd} as splitTableScd
+		             , #{dataUpdPerScd} as dataUpdPerScd
+		             , #{oriDataOwner} as oriDataOwner
+		             , #{oriDataMngNm} as oriDataMngNm
+		             , #{oriDataMngTel} as oriDataMngTel
+		             , #{oriDataMngEmail} as oriDataMngEmail
+		             , #{rmk} as rmk
+		             , #{useYn} as useYn
+		             , #{createId} as createId
+		             , now() as createDt
+		             , #{updateId} as updateId
+		             , now() as updateDt
+			), update_option as (
+				update hs_data_table_info 
+				set    table_nm = merge_data.tableNm
+				     , description = merge_data.description
+				     , data_gubun_nm = merge_data.dataGubunNm
+				     , data_type_scd = merge_data.dataTypeScd
+				     , data_conn_scd = merge_data.dataConnScd
+				     , openapi_url = merge_data.openapiUrl
+				     , mng_std_ymd_scd = merge_data.mngStdYmdScd
+				     , insert_std_ymd_yn = merge_data.insertStdYmdYn
+				     , split_table_scd = merge_data.splitTableScd
+				     , data_upd_per_scd = merge_data.dataUpdPerScd
+				     , ori_data_owner = merge_data.oriDataOwner
+				     , ori_data_mng_nm = merge_data.oriDataMngNm
+				     , ori_data_mng_tel = merge_data.oriDataMngTel
+				     , ori_data_mng_email = merge_data.oriDataMngEmail
+				     , rmk = merge_data.rmk
+				     , use_yn = merge_data.useYn
+				     , update_id = merge_data.updateId
+				     , update_dt = merge_data.updateDt::timestamp
+				from   merge_data 
+				where  hs_data_table_info.table_id = merge_data.tableId
+			)
+			insert into hs_data_table_info
+			(
+				table_id
+			  , table_nm
+		      , description
+		      , data_gubun_nm
+		      , data_type_scd
+		      , data_conn_scd
+		      , openapi_url
+		      , data_file_path
+		      , mng_std_ymd_scd
+		      , insert_std_ymd_yn
+		      , split_table_scd
+		      , data_upd_per_scd
+		      , ori_data_owner
+		      , ori_data_mng_nm
+		      , ori_data_mng_tel
+		      , ori_data_mng_email
+		      , rmk
+		      , use_yn
+		      , create_id
+		      , create_dt
+			)
+			select merge_data.tableId
+			     , merge_data.tableNm
+			     , merge_data.description
+			     , merge_data.dataGubunNm
+			     , merge_data.dataTypeScd
+			     , merge_data.dataConnScd
+			     , merge_data.openapiUrl
+			     , 'D:\hscity_data_dir'
+			     , merge_data.mngStdYmdScd
+			     , merge_data.insertStdYmdYn
+			     , merge_data.splitTableScd
+			     , merge_data.dataUpdPerScd
+			     , merge_data.oriDataOwner
+			     , merge_data.oriDataMngNm
+			     , merge_data.oriDataMngTel
+			     , merge_data.oriDataMngEmail
+			     , merge_data.rmk
+			     , merge_data.useYn
+			     , merge_data.createId
+			     , merge_data.createDt::timestamp
+			from   merge_data
+		    where  not exists(select 1 
+		                      from   hs_data_table_info 
+		                      where  hs_data_table_info.table_id = merge_data.tableId
+				              );
+	</update>
+	
+
+	
+	<!-- 내부시스템 연계리스트 -->
+	<select id="getSystemLinkList" resultType="dataLinkVO" parameterType="map">
+        select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.data_type_scd
+		     , a.openapi_url
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.openapi_time_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'openapi_time_scd' and detail_cd = a.openapi_time_scd) as openapi_time_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+             , a.ori_data_owner
+		     , a.use_yn
+		     , a.data_conn_scd
+		from   hs_data_table_info a 
+		where  a.data_conn_scd is not null
+		<if test="dataConnScd != null and dataConnScd != ''">
+		and    a.data_conn_scd = #{dataConnScd}
+		</if>
+		<if test="dataConnScd == null or dataConnScd == ''">
+		and    a.data_conn_scd in ('ehojo001','ehojo002', 'ehojo003', 'minwon001','localtax')
+		</if>
+		
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	<select id="getSystemLinkExcel" resultType="map" parameterType="map">
+		select a.table_id
+		     , a.table_nm
+		     , a.description
+		     , a.data_gubun_nm
+		     , a.openapi_url
+		     , a.openapi_time_scd
+             , (select detail_nm from hs_detail_code where group_cd = 'openapi_time_scd' and detail_cd = a.openapi_time_scd) as openapi_time_scd_nm
+		     , a.mng_std_ymd_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'mng_std_ymd_scd' and detail_cd = a.mng_std_ymd_scd) as mng_std_ymd_scd_nm
+		     , a.data_type_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_type_scd' and detail_cd = a.data_type_scd) as data_type_scd_nm
+		     , a.data_conn_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_conn_scd' and detail_cd = a.data_conn_scd) as data_conn_scd_nm
+		     , a.data_upd_per_scd
+		     , (select detail_nm from hs_detail_code where group_cd = 'data_upd_per_scd' and detail_cd = a.data_upd_per_scd) as data_upd_per_scd_nm
+		     , to_char(now() - a.last_upload_dt, 'dd일HH24시간 경과') as status
+		     , to_char(a.last_upload_dt, 'YYYY-MM-DD HH24:MI:SS') as last_upload_dt
+		     , a.ori_data_owner
+		     , a.ori_data_mng_nm
+		     , a.ori_data_mng_tel
+		     , a.use_yn
+		from   hs_data_table_info a 
+		where  1 = 1
+				<if test="dataConnScd != null and dataConnScd != ''">
+		and    a.data_conn_scd = #{dataConnScd}
+		</if>
+		<if test="dataConnScd == null or dataConnScd == ''">
+		and    a.data_conn_scd in ('ehojo001','ehojo002', 'ehojo003', 'minwon001','localtax')
+		</if>
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'tableId' ">
+			and a.table_id like '%'||#{searchText}||'%'
+			</when>
+			<when test="searchType == 'tableNm' ">
+			and a.table_nm like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%') 
+			</otherwise>
+		</choose>
+		</if>
+		<if test="searchText == ''">
+			and (a.table_nm like '%'||#{searchText}||'%' or a.table_id like '%'||#{searchText}||'%')
+		</if>
+		order by a.data_gubun_nm, a.table_nm;
+	</select>
+	
+	
+	
+	
+	<!-- 내부시스템 연계 수동업로드 -->
+	<select id="excuteSystemLinkManualUpload" resultType="string" parameterType="dataVO">
+		<![CDATA[
+		select sp_hscity_systemlink_upload(#{tableId}, #{dataConnScd}, #{dbUpldUserId});	
+		]]>
+	</select>
+	
+	
+
+	<select id="getConfirmTableExistYn" resultType="dataVO" parameterType="map">
+		select case when count(*) = 0 then 'not_table' 
+	                else (case when (select count(*) from hs_data_table_info where table_id = #{tableId}) != 0 then 'used_table'
+	                           else 'y'
+	                      end
+	                     ) 
+	           end confirm_table_yn
+	    from   pg_tables
+	    where  tablename = #{tableId};
+	</select>
+	
+	<insert id="saveDataUploadUser" parameterType="java.util.List">
+		<foreach item="item" collection="list" separator="">
+			insert into hs_db_upld_user
+			(table_id
+		   , user_id
+		   , create_id
+		   , create_dt
+			)
+			values(#{item.tableId}
+		         , #{item.uploadUserId}
+		         , #{item.createId}
+		         , now()
+			);
+		</foreach>
+	</insert>
+	
+	<insert id="deleteDataUploadUser" parameterType="dataVO">
+		delete from hs_db_upld_user where table_id = #{tableId} and user_id = #{uploadUserId}; 
+	</insert>
+</mapper>

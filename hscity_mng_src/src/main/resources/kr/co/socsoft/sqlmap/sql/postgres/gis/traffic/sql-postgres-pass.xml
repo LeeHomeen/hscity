@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.PassAnalsDao">
+	
+	<!-- 통행패턴 분석결과 -->
+	<select id="selectPassList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+		with hst_ana_od_sta_all as (
+			select
+				'2-7-1' as mid,
+				sid, fid, snm, fnm, pop, 
+				st_astext(sp) as sp, 
+				st_astext(fp) as fp,
+				st_astext(st_makeline(sp, fp)) as bline
+			from(
+				select 
+					s_sta_id as sid, f_sta_id as fid, 
+					s_sta_nm as snm, f_sta_nm as fnm,
+					ST_Transform(ST_SetSRID(st_point(s_xcoord, s_ycoord), 4326), ${coord}) as sp,
+					ST_Transform(ST_SetSRID(st_point(f_xcoord, f_ycoord), 4326), ${coord}) as fp,
+					sum(pop) as pop 
+				from hst_ana_od_sta
+				where gubun = #{ptype}
+				and s_sta_id = #{sid}
+				group by s_sta_id, f_sta_id, s_sta_nm, f_sta_nm, s_xcoord, s_ycoord, f_xcoord, f_ycoord
+			)part1
+			order by fid asc
+		)
+		select * from hst_ana_od_sta_all sta,
+		(select min(pop) as min, max(pop) as max from hst_ana_od_sta_all) stat 
+		]]>
+	</select>	
+	
+	<!-- 정류장 검색 -->
+	<select id="selectPassStaList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select 
+				s_sta_id as sid, 
+				s_sta_nm as snm
+			from hst_ana_od_sta
+			where gubun = #{ptype}
+			group by s_sta_id, s_sta_nm
+			order by s_sta_id
+		]]>
+	</select>	
+</mapper>

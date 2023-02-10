@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.FacAnalsDao">
+	
+	<!-- 환승편의시설분석결과 -->
+	<select id="selectFacList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[			
+			select 
+				'2-4-1' as mid,
+				${coord} as coord,
+				lid, bnum, sid, div, 
+				pop, spop, (pop-spop) as tpop, 
+				st_astext(ST_Transform(ST_SetSRID(st_point(sx, sy), 4326), ${coord})) as geom 
+			from( 
+				select line_id as lid, bus_num as bnum, sta_id as sid, sta_nm as div, 
+					wgs_x as sx, wgs_y as sy, 
+					sum(coalesce(s_pop, 0) + coalesce(t1_spop, 0) + coalesce(t2_spop, 0) + coalesce(t3_spop, 0) + coalesce(t4_spop, 0)) as pop, 
+					sum(coalesce(s_pop, 0)) as spop	
+				from hst_ana_sta_cnt 
+				where line_id in (${bus}) 
+				group by line_id, bus_num, sta_id, sta_nm, wgs_x, wgs_y 
+				order by bus_num asc, sta_id asc 
+			)part1 
+		]]>
+	</select>	
+</mapper>

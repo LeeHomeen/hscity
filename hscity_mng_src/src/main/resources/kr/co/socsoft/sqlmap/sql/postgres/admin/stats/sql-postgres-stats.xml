@@ -1,0 +1,736 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.stats.service.StatsDao">
+	
+
+    <!-- 대시민 접속 리스트 -->
+	<select id="getPublicAccessCountList" resultType="accessVO" parameterType="accessVO">
+		<![CDATA[
+		select 
+		row_number() over(order by log_seq desc) log_seq, *
+		from 
+		(		select 
+				   log_seq,
+			       conn_ip,
+			       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt,
+			       conn_browser
+			from hs_pub_conn_log
+		]]>
+                where 1 = 1
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+                            and conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                        </if>
+                    </if>
+           
+ 
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and conn_browser like '%' || #{searchString} || '%'
+                        </if>
+             
+		    ) a
+            order by a.${orderByColumn} ${orderBySord}
+            limit #{recordCountPerPage} offset #{firstIndex}
+    </select>
+
+
+<!-- 대시민 접속리스트 총갯수 -->
+	<select id="getPublicAccessCountListTot" resultType="int" parameterType="accessVO">
+		<![CDATA[
+				select 
+			           count(*)
+			    from hs_pub_conn_log
+		]]>
+                where 1 = 1
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+                            and conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                        </if>
+                    </if>
+                    
+                    
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and conn_browser like '%' || #{searchString} || '%'
+                        </if>
+
+	</select>
+
+
+
+
+<!-- 대시민 접속 리스트 엑셀다운로드 -->
+    <select id="getPublicAccessCountExcel" resultType="map" parameterType="accessVO">
+        <![CDATA[
+		select 
+		row_number() over(order by log_seq desc) log_seq, *
+		from 
+		(
+			select log_seq,
+			       conn_ip,
+			       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt,
+			       conn_browser
+			from hs_pub_conn_log
+				]]>
+			
+		    where 1 = 1
+                  and conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                   and conn_browser like '%' || #{searchString} || '%'
+                </if>
+                  
+           ) a     
+            order by a.log_seq desc
+	
+    </select>
+
+
+
+
+
+
+  <!-- 내부용 사용자 접속 리스트 -->
+	<select id="getUserAccessCountList" resultType="accessVO" parameterType="accessVO">
+		<![CDATA[
+	
+		select 
+		row_number() over(order by log_seq desc) log_seq, *
+		from 
+		(
+		select 
+				   a.log_seq,
+				   a.user_id,
+				   COALESCE(b.user_name,'정보없음') as user_nm,
+			       a.conn_ip,
+			       to_char(a.conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt,
+			       a.conn_browser
+			from hs_user_conn_log a left join hs_user_mst b on a.user_id=b.user_id
+		]]>
+                where 1 = 1
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+                            and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                        </if>
+                    </if>
+
+
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		) a
+            order by a.${orderByColumn} ${orderBySord}
+            limit #{recordCountPerPage} offset #{firstIndex}
+    </select>
+
+
+<!-- 내부용 사용자 접속리스트 총갯수 -->
+	<select id="getUserAccessCountListTot" resultType="int" parameterType="accessVO">
+		<![CDATA[
+				select 
+			           count(*)
+			    from hs_user_conn_log
+		]]>
+                where 1 = 1
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+                            and conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                        </if>
+                    </if>
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+
+	</select>
+
+
+
+
+<!-- 내부용 사용자 접속 리스트 엑셀다운로드 -->
+    <select id="getUserAccessCountExcel" resultType="map" parameterType="accessVO">
+        <![CDATA[
+        
+        select 
+		row_number() over(order by log_seq desc) log_seq, *
+		from 
+		(
+        
+		select 
+				   a.log_seq,
+				   a.user_id,
+				   COALESCE(b.user_name,'정보없음') as user_nm,
+			       a.conn_ip,
+			       to_char(a.conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt,
+			       a.conn_browser
+			from hs_user_conn_log a left join hs_user_mst b on a.user_id=b.user_id
+				]]>
+			
+		    where 1 = 1
+                  and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+                   <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+                  
+            ) a  
+            order by a.log_seq desc
+	
+    </select>
+
+
+
+
+
+
+
+
+
+
+
+  <!-- 내부 메뉴접속 리스트 -->
+	<select id="getUserMenuCountList" resultType="accessVO" parameterType="accessVO">		
+	 <![CDATA[
+	
+	    select 
+		row_number() over(order by log_seq desc) log_seq, *
+		from 
+		(
+			SELECT a.log_seq,
+		       a.menu_cd,
+		       a.category_cd,
+		       CASE WHEN LENGTH(b.category_path) <=0 THEN '정보없음'  ELSE SUBSTR(b.category_path,5,LENGTH(b.category_path)) END AS category_path,
+		       a.menu_nm,
+		       a.user_id,
+		       a.user_nm,
+		       a.conn_ip,
+		       a.conn_dt,
+		       b.level,
+		       b.category_cd_path 
+		FROM 
+	]]>
+		(SELECT a.log_seq, 
+		       a.biz_menu_cd as menu_cd,
+		       COALESCE(c.biz_category_cd,'정보없음') as category_cd,
+		       COALESCE((select upper_biz_category_cd from hs_biz_menu_category where biz_category_cd = c.biz_category_cd),'정보없음') as upper_category_cd,
+		       COALESCE(c.biz_menu_nm,'정보없음') as menu_nm ,
+		       a.user_id, 
+		       COALESCE(b.user_name,'정보없음') as user_nm,
+		       a.conn_ip, 
+		       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt
+		  FROM (SELECT * 
+		        FROM hs_biz_menu_log a
+		        WHERE 1=1
+		             <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+		                 <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+		                        and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+		                   </if>
+		             </if>
+		        ) a
+		  LEFT JOIN hs_user_mst b ON a.user_id = b.user_id
+		  LEFT JOIN hs_biz_menu_mst c ON a.biz_menu_cd = c.biz_menu_cd
+          WHERE 1=1 
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		  
+		) a 
+		LEFT JOIN
+		
+		(
+		WITH RECURSIVE X (biz_category_cd, upper_biz_category_cd, level, path, code, cycle) AS
+		(
+		  SELECT biz_category_cd, upper_biz_category_cd, 0, array[''],array[biz_category_cd::text], false
+		  FROM hs_biz_menu_category
+		  WHERE upper_biz_category_cd ='ROOT' 
+		
+		  UNION ALL
+		
+		  SELECT b.biz_category_cd, b.upper_biz_category_cd, level+1, path || b.biz_category_nm::text,  code || b.biz_category_cd::text, b.biz_category_cd = any(path) 
+		  FROM X ,hs_biz_menu_category b
+		  WHERE b.upper_biz_category_cd = X.biz_category_cd  and not cycle
+		)
+		SELECT biz_category_cd , 
+		      upper_biz_category_cd, 
+		      level,
+		      array_to_string(path,' >> ') as category_path,
+		      code as category_cd_path
+		FROM X
+		) b
+		
+		ON a.category_cd = b.biz_category_cd
+
+	
+		) a
+		
+		
+        WHERE 1=1 
+         <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(categoryCd)">
+         and a.category_cd_path[${categoryLevel}]= #{categoryCd}               
+         </if>	
+		
+		order by a.${orderByColumn} ${orderBySord}
+        limit #{recordCountPerPage} offset #{firstIndex}
+
+		  
+		
+
+    </select>
+ 
+
+<!-- 내부메뉴 접속 리스트 총갯수 -->
+	<select id="getUserMenuCountListTot" resultType="int" parameterType="accessVO">
+	 <![CDATA[
+	
+	    select 
+		 count(*)
+		from 
+		(
+			SELECT a.log_seq,
+		       a.menu_cd,
+		       a.category_cd,
+		       CASE WHEN LENGTH(b.category_path) <=0 THEN '정보없음'  ELSE SUBSTR(b.category_path,5,LENGTH(b.category_path)) END AS category_path,
+		       a.menu_nm,
+		       a.user_id,
+		       a.user_nm,
+		       a.conn_ip,
+		       a.conn_dt,
+		       b.level,
+		       b.category_cd_path 
+		FROM 
+	]]>
+		(SELECT a.log_seq, 
+		       a.biz_menu_cd as menu_cd,
+		       COALESCE(c.biz_category_cd,'정보없음') as category_cd,
+		       COALESCE((select upper_biz_category_cd from hs_biz_menu_category where biz_category_cd = c.biz_category_cd),'정보없음') as upper_category_cd,
+		       COALESCE(c.biz_menu_nm,'정보없음') as menu_nm ,
+		       a.user_id, 
+		       COALESCE(b.user_name,'정보없음') as user_nm,
+		       a.conn_ip, 
+		       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt
+		  FROM (SELECT * 
+		        FROM hs_biz_menu_log a
+		        WHERE 1=1
+		             <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+		                 <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+		                        and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+		                   </if>
+		             </if>
+		        ) a
+		  LEFT JOIN hs_user_mst b ON a.user_id = b.user_id
+		  LEFT JOIN hs_biz_menu_mst c ON a.biz_menu_cd = c.biz_menu_cd
+          WHERE 1=1 
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		  
+		) a 
+		LEFT JOIN
+		
+		(
+		WITH RECURSIVE X (biz_category_cd, upper_biz_category_cd, level, path, code, cycle) AS
+		(
+		  SELECT biz_category_cd, upper_biz_category_cd, 0, array[''],array[biz_category_cd::text], false
+		  FROM hs_biz_menu_category
+		  WHERE upper_biz_category_cd ='ROOT' 
+		
+		  UNION ALL
+		
+		  SELECT b.biz_category_cd, b.upper_biz_category_cd, level+1, path || b.biz_category_nm::text,  code || b.biz_category_cd::text, b.biz_category_cd = any(path) 
+		  FROM X ,hs_biz_menu_category b
+		  WHERE b.upper_biz_category_cd = X.biz_category_cd  and not cycle
+		)
+		SELECT biz_category_cd , 
+		      upper_biz_category_cd, 
+		      level,
+		      array_to_string(path,' >> ') as category_path,
+		      code as category_cd_path
+		FROM X
+		) b
+		
+		ON a.category_cd = b.biz_category_cd
+	
+		) a
+		  
+		
+
+        WHERE 1=1 
+         <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(categoryCd)">
+         and a.category_cd_path[${categoryLevel}]= #{categoryCd}               
+         </if>	
+	
+    </select>
+
+
+
+
+
+
+<!-- 내부메뉴 접속 리스트 엑셀 -->
+	<select id="getUserMenuCountExcel" resultType="map" parameterType="accessVO">
+	 <![CDATA[
+	
+	    select 
+		row_number() over(order by log_seq desc) log_seq , 
+		menu_cd,
+		category_path,
+		menu_nm,
+		user_id,
+		user_nm,
+		conn_ip,
+		conn_dt
+		
+		from 
+		(
+			SELECT a.log_seq,
+		       a.menu_cd,
+		       a.category_cd,
+		       CASE WHEN LENGTH(b.category_path) <=0 OR b.category_path is null THEN '정보없음'  ELSE SUBSTR(b.category_path,5,LENGTH(b.category_path)) END AS category_path,
+		       a.menu_nm,
+		       a.user_id,
+		       a.user_nm,
+		       a.conn_ip,
+		       a.conn_dt 
+		FROM 
+	]]>
+		(SELECT a.log_seq, 
+		       a.biz_menu_cd as menu_cd,
+		       COALESCE(c.biz_category_cd,'정보없음') as category_cd,
+		       COALESCE((select upper_biz_category_cd from hs_biz_menu_category where biz_category_cd = c.biz_category_cd),'정보없음') as upper_category_cd,
+		       COALESCE(c.biz_menu_nm,'정보없음') as menu_nm ,
+		       a.user_id, 
+		       COALESCE(b.user_name,'정보없음') as user_nm,
+		       a.conn_ip, 
+		       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt
+		  FROM (SELECT * 
+		        FROM hs_biz_menu_log a
+		        WHERE 1=1
+		             <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+		                 <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+		                        and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+		                   </if>
+		             </if>
+		        ) a
+		  LEFT JOIN hs_user_mst b ON a.user_id = b.user_id
+		  LEFT JOIN hs_biz_menu_mst c ON a.biz_menu_cd = c.biz_menu_cd
+          WHERE 1=1 
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		  
+		) a 
+		LEFT JOIN
+		
+		(
+		WITH RECURSIVE X (biz_category_cd, upper_biz_category_cd, level, path, cycle) AS
+		(
+		  SELECT biz_category_cd, upper_biz_category_cd, 0, array[''], false
+		  FROM hs_biz_menu_category
+		  WHERE upper_biz_category_cd ='ROOT' 
+		
+		  UNION ALL
+		
+		  SELECT b.biz_category_cd, b.upper_biz_category_cd, level+1, path || b.biz_category_nm::text, b.biz_category_cd = any(path) 
+		  FROM X ,hs_biz_menu_category b
+		  WHERE b.upper_biz_category_cd = X.biz_category_cd  and not cycle
+		)
+		SELECT biz_category_cd , 
+		      upper_biz_category_cd, 
+		      level,
+		      array_to_string(path,' >> ') as category_path
+		FROM X
+		) b
+		
+		ON a.category_cd = b.biz_category_cd
+
+
+        WHERE 1=1 
+         <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(categoryCd)">
+         and a.category_cd= #{categoryCd}               
+         </if>		
+		) a
+		order by a.log_seq desc
+
+    </select>
+
+
+
+  <!-- 대시민 메뉴접속 리스트 -->
+	<select id="getPublicMenuCountList" resultType="accessVO" parameterType="accessVO">		
+	 <![CDATA[
+	
+	    select 
+		row_number() over(order by log_seq desc) log_seq, *
+		from 
+		(
+			SELECT a.log_seq,
+		       a.menu_cd,
+		       a.category_cd,
+		       CASE WHEN LENGTH(b.category_path) <=0 OR b.category_path is null THEN '정보없음'  ELSE SUBSTR(b.category_path,5,LENGTH(b.category_path)) END AS category_path,
+		       a.menu_nm,
+		       a.conn_ip,
+		       a.conn_dt,
+		       b.level,
+		       b.category_cd_path 
+		FROM 
+	]]>
+		(SELECT a.log_seq, 
+		       a.pub_menu_cd as menu_cd,
+		       COALESCE(c.pub_category_cd,'정보없음') as category_cd,
+		       COALESCE((select upper_pub_category_cd from hs_pub_menu_category where pub_category_cd = c.pub_category_cd),'정보없음') as upper_category_cd,
+		       COALESCE(c.pub_menu_nm,'정보없음') as menu_nm ,
+		       a.conn_ip, 
+		       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt
+		  FROM (SELECT * 
+		        FROM hs_pub_menu_log a
+		        WHERE 1=1
+		             <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+		                 <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+		                        and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+		                   </if>
+		             </if>
+		        ) a
+
+		  LEFT JOIN hs_pub_menu_mst c ON a.pub_menu_cd = c.pub_menu_cd
+          WHERE 1=1 
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		  
+		) a 
+		LEFT JOIN
+		
+		(
+		WITH RECURSIVE X (pub_category_cd, upper_pub_category_cd, level, path, code, cycle) AS
+		(
+		  SELECT pub_category_cd, upper_pub_category_cd, 0, array[''],array[pub_category_cd::text], false
+		  FROM hs_pub_menu_category
+		  WHERE upper_pub_category_cd ='ROOT' 
+		
+		  UNION ALL
+		
+		  SELECT b.pub_category_cd, b.upper_pub_category_cd, level+1, path || b.pub_category_nm::text,  code || b.pub_category_cd::text, b.pub_category_cd = any(path) 
+		  FROM X ,hs_pub_menu_category b
+		  WHERE b.upper_pub_category_cd = X.pub_category_cd  and not cycle
+		)
+		SELECT pub_category_cd , 
+		      upper_pub_category_cd, 
+		      level,
+		      array_to_string(path,' >> ') as category_path,
+		      code as category_cd_path
+		FROM X
+		) b
+		
+		ON a.category_cd = b.pub_category_cd
+
+	
+		) a
+		
+		
+        WHERE 1=1 
+         <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(categoryCd)">
+         and a.category_cd_path[${categoryLevel}]= #{categoryCd}               
+         </if>	
+		
+		order by a.${orderByColumn} ${orderBySord}
+        limit #{recordCountPerPage} offset #{firstIndex}
+
+		  
+		
+
+    </select>
+ 
+
+<!-- 대시민메뉴 접속 리스트 총갯수 -->
+	<select id="getPublicMenuCountListTot" resultType="int" parameterType="accessVO">
+	 <![CDATA[
+	
+	    select 
+		 count(*)
+		from 
+		(
+			SELECT a.log_seq,
+		       a.menu_cd,
+		       a.category_cd,
+		       CASE WHEN LENGTH(b.category_path) <=0 THEN '정보없음'  ELSE SUBSTR(b.category_path,5,LENGTH(b.category_path)) END AS category_path,
+		       a.menu_nm,
+		       a.conn_ip,
+		       a.conn_dt,
+		       b.level,
+		       b.category_cd_path 
+		FROM 
+	]]>
+		(SELECT a.log_seq, 
+		       a.pub_menu_cd as menu_cd,
+		       COALESCE(c.pub_category_cd,'정보없음') as category_cd,
+		       COALESCE((select upper_pub_category_cd from hs_pub_menu_category where pub_category_cd = c.pub_category_cd),'정보없음') as upper_category_cd,
+		       COALESCE(c.pub_menu_nm,'정보없음') as menu_nm ,
+		       a.conn_ip, 
+		       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt
+		  FROM (SELECT * 
+		        FROM hs_pub_menu_log a
+		        WHERE 1=1
+		             <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+		                 <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+		                        and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+		                   </if>
+		             </if>
+		        ) a
+
+		  LEFT JOIN hs_pub_menu_mst c ON a.pub_menu_cd = c.pub_menu_cd
+          WHERE 1=1 
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		  
+		) a 
+		LEFT JOIN
+		
+		(
+		WITH RECURSIVE X (pub_category_cd, upper_pub_category_cd, level, path, code, cycle) AS
+		(
+		  SELECT pub_category_cd, upper_pub_category_cd, 0, array[''],array[pub_category_cd::text], false
+		  FROM hs_pub_menu_category
+		  WHERE upper_pub_category_cd ='ROOT' 
+		
+		  UNION ALL
+		
+		  SELECT b.pub_category_cd, b.upper_pub_category_cd, level+1, path || b.pub_category_nm::text,  code || b.pub_category_cd::text, b.pub_category_cd = any(path) 
+		  FROM X ,hs_pub_menu_category b
+		  WHERE b.upper_pub_category_cd = X.pub_category_cd  and not cycle
+		)
+		SELECT pub_category_cd , 
+		      upper_pub_category_cd, 
+		      level,
+		      array_to_string(path,' >> ') as category_path,
+		      code as category_cd_path
+		FROM X
+		) b
+		
+		ON a.category_cd = b.pub_category_cd
+	
+		) a
+		  
+		
+
+        WHERE 1=1 
+         <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(categoryCd)">
+         and a.category_cd_path[${categoryLevel}]= #{categoryCd}               
+         </if>	
+	
+    </select>
+
+
+
+
+
+
+<!-- 대시민메뉴 접속 리스트 엑셀 -->
+	<select id="getPublicMenuCountExcel" resultType="map" parameterType="accessVO">
+	 <![CDATA[
+	
+	    select 
+		row_number() over(order by log_seq desc) log_seq , 
+		menu_cd,
+		category_path,
+		menu_nm,
+		conn_ip,
+		conn_dt
+		
+		from 
+		(
+			SELECT a.log_seq,
+		       a.menu_cd,
+		       a.category_cd,
+		       CASE WHEN LENGTH(b.category_path) <=0 OR b.category_path is null THEN '정보없음'  ELSE SUBSTR(b.category_path,5,LENGTH(b.category_path)) END AS category_path,
+		       a.menu_nm,
+		       a.conn_ip,
+		       a.conn_dt 
+		FROM 
+	]]>
+		(SELECT a.log_seq, 
+		       a.pub_menu_cd as menu_cd,
+		       COALESCE(c.pub_category_cd,'정보없음') as category_cd,
+		       COALESCE((select upper_pub_category_cd from hs_pub_menu_category where pub_category_cd = c.pub_category_cd),'정보없음') as upper_category_cd,
+		       COALESCE(c.pub_menu_nm,'정보없음') as menu_nm ,
+		       a.conn_ip, 
+		       to_char(conn_dt, 'YYYY-MM-DD HH24:MI:SS') conn_dt
+		  FROM (SELECT * 
+		        FROM hs_pub_menu_log a
+		        WHERE 1=1
+		             <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(sDate)">
+		                 <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(eDate)">
+		                        and a.conn_dt between to_date(#{sDate}, 'YYYY-MM-DD') and (to_date(#{eDate},'YYYY-MM-DD') + 1) - interval '1 second'
+		                   </if>
+		             </if>
+		        ) a
+		  LEFT JOIN hs_pub_menu_mst c ON a.pub_menu_cd = c.pub_menu_cd
+          WHERE 1=1 
+                    <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                            and ${searchField} like '%' || #{searchString} || '%'
+                        </if>
+                    </if>
+		  
+		) a 
+		LEFT JOIN
+		
+		(
+		WITH RECURSIVE X (pub_category_cd, upper_pub_category_cd, level, path, cycle) AS
+		(
+		  SELECT pub_category_cd, upper_pub_category_cd, 0, array[''], false
+		  FROM hs_pub_menu_category
+		  WHERE upper_pub_category_cd ='ROOT' 
+		
+		  UNION ALL
+		
+		  SELECT b.pub_category_cd, b.upper_pub_category_cd, level+1, path || b.pub_category_nm::text, b.pub_category_cd = any(path) 
+		  FROM X ,hs_pub_menu_category b
+		  WHERE b.upper_pub_category_cd = X.pub_category_cd  and not cycle
+		)
+		SELECT pub_category_cd , 
+		      upper_pub_category_cd, 
+		      level,
+		      array_to_string(path,' >> ') as category_path
+		FROM X
+		) b
+		
+		ON a.category_cd = b.pub_category_cd
+
+
+        WHERE 1=1 
+         <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(categoryCd)">
+         and a.category_cd= #{categoryCd}               
+         </if>		
+		) a
+		order by a.log_seq desc
+
+    </select>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</mapper>

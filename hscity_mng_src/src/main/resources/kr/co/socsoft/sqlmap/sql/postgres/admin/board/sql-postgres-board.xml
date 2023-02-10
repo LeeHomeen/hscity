@@ -1,0 +1,872 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.manage.board.service.impl.ManageBoardMapper">
+    <resultMap id="boardVOResultMap" type="boardVO">
+        <id property="seq" column="seq"/>
+        <result property="rownum" column="rownum"/>
+        <result property="bbsTypeScd" column="bbs_type_scd"/>
+        <result property="bbsTypeNm" column="bbs_type_nm"/>
+        <result property="title" column="title"/>
+        <result property="contents" column="contents"/>
+        <result property="rmk" column="rmk"/>
+        <result property="useYn" column="use_yn"/>
+        <result property="attFileMngSeq" column="att_file_mng_seq"/>
+        <result property="createId" column="create_id"/>
+        <result property="createNm" column="create_nm"/>
+        <result property="createDt" column="create_dt"/>
+        <result property="updateId" column="update_id"/>
+        <result property="isNew" column="is_new"/>
+        <result property="upperQnaSeq" column="upper_qna_seq"/>
+        <result property="upperThinkSeq" column="upper_think_seq"/>
+        <collection
+                property="answers"
+                ofType="kr.co.socsoft.manage.board.vo.AnswerVO"
+                columnPrefix="answer_"
+                foreignColumn="upper_qna_seq"
+                resultMap="kr.co.socsoft.manage.board.service.impl.ManageBoardMapper.answerVOResultMap" />
+        <collection
+                property="thinks"
+                ofType="kr.co.socsoft.manage.board.vo.AnswerVO"
+                columnPrefix="think_answer_"
+                foreignColumn="upper_think_seq"
+                resultMap="kr.co.socsoft.manage.board.service.impl.ManageBoardMapper.answerVOResultMap" />
+        <collection
+                property="bbsAttFiles"
+                ofType="bbsAttFileVO"
+                columnPrefix="file_"
+                foreignColumn="att_file_mng_seq"
+                resultMap="kr.co.socsoft.manage.file.service.impl.FileMapper.bbsAttFileVOResultMap"/>
+        <collection
+                property="answerBbsAttFiles"
+                ofType="bbsAttFileVO"
+                columnPrefix="answer_file_"
+                foreignColumn="att_file_mng_seq"
+                resultMap="kr.co.socsoft.manage.file.service.impl.FileMapper.bbsAttFileVOResultMap"/>
+    </resultMap>
+
+    <resultMap id="answerVOResultMap" type="kr.co.socsoft.manage.board.vo.AnswerVO">
+        <id property="seq" column="seq"/>
+        <result property="bbsTypeScd" column="bbs_type_scd"/>
+        <result property="bbsTypeNm" column="bbs_type_nm"/>
+        <result property="title" column="title"/>
+        <result property="contents" column="contents"/>
+        <result property="rmk" column="rmk"/>
+        <result property="useYn" column="use_yn"/>
+        <result property="attFileMngSeq" column="att_file_mng_seq"/>
+        <result property="createId" column="create_id"/>
+        <result property="createNm" column="create_nm"/>
+        <result property="createDt" column="create_dt"/>
+        <result property="updateId" column="update_id"/>
+        <result property="upperQnaSeq" column="upper_qna_seq"/>
+        <result property="upperThinkSeq" column="upper_think_seq"/>
+    </resultMap>
+
+    <sql id="where_sql">
+        where 1 = 1
+
+        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(site)">
+            <if test="site.equals('biz')">
+                /* 업무용 */
+                and a.bbs_type_scd = 'biz'
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+                    and a.${searchField} like '%' || #{searchString} || '%'
+                </if>
+            </if>
+
+            <if test="site.equals('pub')">
+                /* 대시민 */
+                and a.bbs_type_scd = 'pub'
+            </if>
+        </if>
+
+        <if test="@kr.co.socsoft.util.SOCSOFTUtils@isEmpty(site)">
+            /* 관리자 */
+            <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchField)">
+                <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchKeyword)">
+                    and a.${searchField} = #{searchKeyword}
+                </if>
+            </if>
+
+            <if test="@kr.co.socsoft.util.SOCSOFTUtils@isNotEmpty(searchString)">
+              and a.title like '%' || #{searchString} || '%'
+            </if>
+        </if>
+    </sql>
+
+    <!-- 공지사항 시작 -->
+	<select id="selectNoticeBoardList" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+            /* selectBoardList */
+            select
+              a.*,
+              (select detail_nm from hs_detail_code where detail_cd = a.bbs_type_scd) bbs_type_nm,
+              file_seq file_file_seq,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from (
+              select
+                row_number() over(order by notice_seq asc) rownum,
+                notice_seq as seq,
+                bbs_type_scd,
+                title,
+                contents,
+                rmk,
+                use_yn,
+                att_file_mng_seq,
+                create_id,
+                (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+                update_id,
+                to_char(create_dt, 'YYYY-MM-DD') as create_dt,
+                to_char(update_dt, 'YYYY-MM-DD') as update_dt,
+                case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new
+              from hs_bbs_notice a
+        ]]>
+              <include refid="where_sql" />
+        <![CDATA[
+              ) a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            order by a.seq desc, b.file_seq asc
+            limit #{recordCountPerPage} offset #{firstIndex}
+        ]]>
+	</select>
+
+    <select id="selectNoticeBoardListToCnt" parameterType="boardVO" resultType="int">
+        <![CDATA[
+            /* selectNoticeBoardListToCnt */
+            select count(*) from hs_bbs_notice a
+        ]]>
+            <include refid="where_sql" />
+    </select>
+
+    <select id="selectNoticeBoard" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+          /* selectNoticeBoard */
+          select
+              notice_seq as seq,
+              bbs_type_scd,
+              title,
+              contents,
+              rmk,
+              use_yn,
+              a.att_file_mng_seq,
+              a.create_id,
+              (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+              a.update_id,
+              to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+              to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+              case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              file_seq file_file_seq,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from hs_bbs_notice a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            where a.notice_seq = #{seq}
+            order by b.file_seq asc
+        ]]>
+    </select>
+
+    <update id="updateNoticeBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateNoticeBoard */
+            update hs_bbs_notice set
+              title = #{title},
+              att_file_mng_seq = #{attFileMngSeq},
+              bbs_type_scd = #{bbsTypeScd},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where notice_seq = #{seq}
+        ]]>
+    </update>
+
+    <insert id="insertNoticeBoard" parameterType="boardVO" keyProperty="seq" keyColumn="notice_seq" useGeneratedKeys="true">
+        <![CDATA[
+          /* insertNoticeBoard */
+          insert into hs_bbs_notice (
+            notice_seq,
+            bbs_type_scd,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            #{bbsTypeScd},
+            #{title},
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_notice_seq')
+        </selectKey>
+    </insert>
+
+    <delete id="deleteNoticeBoard">
+        <![CDATA[
+          /* deleteNoticeBoard */
+          delete from hs_bbs_notice where notice_seq = #{seq}
+        ]]>
+    </delete>
+    <!-- 공지사항 끝 -->
+
+    <!-- FAQ 시작 -->
+    <select id="selectFaqBoardList" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+            /* selectFaqBoardList */
+            select
+              a.*,
+              (select detail_nm from hs_detail_code where detail_cd = a.bbs_type_scd) bbs_type_nm,
+              file_seq file_file_seq,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from (
+              select
+                row_number() over(order by faq_seq asc) rownum,
+                faq_seq as seq,
+                bbs_type_scd,
+                title,
+                contents,
+                rmk,
+                use_yn,
+                att_file_mng_seq,
+                create_id,
+                (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+                update_id,
+                to_char(create_dt, 'YYYY-MM-DD') as create_dt,
+                to_char(update_dt, 'YYYY-MM-DD') as update_dt,
+                case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new
+              from hs_bbs_faq a
+        ]]>
+              <include refid="where_sql" />
+        <![CDATA[
+              ) a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            order by a.seq desc, b.file_seq asc
+            limit #{recordCountPerPage} offset #{firstIndex}
+        ]]>
+    </select>
+
+    <select id="selectFaqBoardListToCnt" parameterType="boardVO" resultType="int">
+        <![CDATA[
+            /* selectFaqBoardListToCnt */
+            select count(*) from hs_bbs_faq a
+        ]]>
+            <include refid="where_sql" />
+    </select>
+
+    <select id="selectFaqBoard" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+          /* selectFaqBoard */
+          select
+              faq_seq as seq,
+              bbs_type_scd,
+              title,
+              contents,
+              rmk,
+              use_yn,
+              a.att_file_mng_seq,
+              a.create_id,
+              (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+              a.update_id,
+              to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+              to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+              case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              file_seq file_file_seq,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from hs_bbs_faq a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            where a.faq_seq = #{seq}
+            order by b.file_seq asc
+        ]]>
+    </select>
+
+    <update id="updateFaqBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateFaqBoard */
+            update hs_bbs_faq set
+              title = #{title},
+              att_file_mng_seq = #{attFileMngSeq},
+              bbs_type_scd = #{bbsTypeScd},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where faq_seq = #{seq}
+        ]]>
+    </update>
+
+    <insert id="insertFaqBoard" parameterType="boardVO" keyProperty="seq" keyColumn="notice_seq" useGeneratedKeys="true">
+        <![CDATA[
+          /* insertFaqBoard */
+          insert into hs_bbs_faq (
+            faq_seq,
+            bbs_type_scd,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            #{bbsTypeScd},
+            #{title},
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_faq_seq')
+        </selectKey>
+    </insert>
+
+    <delete id="deleteFaqBoard">
+        <![CDATA[
+          /* deleteFaqBoard */
+          delete from hs_bbs_faq where faq_seq = #{seq}
+        ]]>
+    </delete>
+    <!-- FAQ 끝 -->
+
+    <!--QA 시작-->
+    <select id="selectQaBoardList" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+            /* selectQaBoardList */
+            select
+              a.*,
+              (select detail_nm from hs_detail_code where detail_cd = a.bbs_type_scd) bbs_type_nm,
+              file_seq file_file_seq,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from (
+              select
+                row_number() over(order by a.qna_seq asc) rownum,
+                a.qna_seq as seq,
+                a.bbs_type_scd,
+                a.title,
+                a.contents,
+                a.rmk,
+                a.use_yn,
+                a.att_file_mng_seq,
+                a.create_id,
+                coalesce((select user_name from hs_user_mst where user_id = a.create_id),a.bbs_content_nm) as create_nm,
+                a.update_id,
+                to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+                to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+                case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+                b.qna_seq as answer_seq,
+                b.upper_qna_seq as answer_upper_qna_seq,
+                b.att_file_mng_seq as answer_att_file_mng_seq
+              from hs_bbs_qna a left outer join hs_bbs_qna b on (a.qna_seq = b.upper_qna_seq)
+        ]]>
+              <include refid="where_sql" />
+        <![CDATA[
+                /* 답변이 아닌 것들 */
+                and a.upper_qna_seq = 0
+              ) a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            order by a.seq desc, b.file_seq asc
+            limit #{recordCountPerPage} offset #{firstIndex}
+        ]]>
+    </select>
+    <select id="selectQaBoardListToCnt" parameterType="boardVO" resultType="int">
+        <![CDATA[
+            /* selectQaBoardListToCnt */
+            select count(*) from hs_bbs_qna a
+        ]]>
+            <include refid="where_sql" />
+    </select>
+    <select id="selectQaBoard" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+          /* selectQaBoard */
+          select
+              a.qna_seq as seq,
+              a.bbs_type_scd,
+              a.title,
+              a.contents,
+              a.rmk,
+              a.use_yn,
+              a.att_file_mng_seq,
+              a.create_id,
+              a.update_id,
+              (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+              to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+              to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+              case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+              b.qna_seq as answer_seq,
+              b.contents as answer_contents,
+              b.upper_qna_seq as answer_upper_qna_seq,
+              b.att_file_mng_seq as answer_att_file_mng_seq,
+              b.create_id as answer_create_id,
+              (select user_name from hs_user_mst where user_id = b.create_id) as answer_create_nm,
+              to_char(b.create_dt, 'YYYY-MM-DD') as answer_create_dt,
+              c.file_data file_file_data,
+              c.file_nm file_file_nm,
+              c.file_size file_file_size,
+              c.file_seq file_file_seq,
+              c.att_file_mng_seq file_att_file_mng_seq,
+              d.file_data answer_file_file_data,
+              d.file_nm answer_file_file_nm,
+              d.file_size answer_file_file_size,
+              d.file_seq answer_file_file_seq,
+              d.att_file_mng_seq answer_file_att_file_mng_seq
+            from hs_bbs_qna a
+              left outer join hs_bbs_qna b on (a.qna_seq = b.upper_qna_seq)
+              left outer join hs_bbs_att_file c on(a.att_file_mng_seq = c.att_file_mng_seq)
+              left outer join hs_bbs_att_file d on (b.att_file_mng_seq = d.att_file_mng_seq)
+            where a.qna_seq = #{seq}
+            order by c.file_seq asc
+        ]]>
+    </select>
+    <update id="updateQaBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateQaBoard */
+            update hs_bbs_qna set
+              title = #{title},
+              bbs_type_scd = coalesce(#{bbsTypeScd}, ''),
+              att_file_mng_seq = #{attFileMngSeq},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where qna_seq = #{seq}
+        ]]>
+    </update>
+    <update id="updateQaAnswerBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateQaAnswerBoard */
+            update hs_bbs_qna set
+              title = #{title},
+              att_file_mng_seq = #{attFileMngSeq},
+              bbs_type_scd = #{bbsTypeScd},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where qna_seq = #{seq}
+        ]]>
+    </update>
+    <insert id="insertQaBoard" parameterType="boardVO">
+        <![CDATA[
+          /* insertQaAnswerBoard */
+          insert into hs_bbs_qna (
+            qna_seq,
+            upper_qna_seq,
+            bbs_type_scd,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            0,
+            coalesce(#{bbsTypeScd}, ''),
+            #{title},
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_qna_seq')
+        </selectKey>
+    </insert>
+    <insert id="insertQaAnswerBoard" parameterType="boardVO">
+        <![CDATA[
+          /* insertQaAnswerBoard */
+          insert into hs_bbs_qna (
+            qna_seq,
+            upper_qna_seq,
+            bbs_type_scd,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            #{upperQnaSeq},
+            '',
+            '',
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_qna_seq')
+        </selectKey>
+    </insert>
+    <delete id="deleteQaBoard" parameterType="boardVO">
+        <![CDATA[
+          /* deleteQaBoard */
+          delete from hs_bbs_qna where qna_seq = #{seq}
+        ]]>
+    </delete>
+    <!-- QA 끝-->
+
+    <!--데이터도움말 시작-->
+    <select id="selectDataManegementBoardList" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+            /* selectDataManegementBoardList */
+            select
+              a.*,
+              file_seq file_file_seq,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from (
+              select
+                row_number() over(order by dh_seq asc) rownum,
+                dh_seq as seq,
+                title,
+                contents,
+                rmk,
+                use_yn,
+                att_file_mng_seq,
+                create_id,
+                (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+                update_id,
+                to_char(create_dt, 'YYYY-MM-DD') as create_dt,
+                to_char(update_dt, 'YYYY-MM-DD') as update_dt,
+                case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new
+              from hs_bbs_dh a
+        ]]>
+              <include refid="where_sql" />
+        <![CDATA[
+              ) a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            order by a.seq desc, b.file_seq asc
+            limit #{recordCountPerPage} offset #{firstIndex}
+        ]]>
+    </select>
+    <select id="selectDataManegementBoardListToCnt" parameterType="boardVO" resultType="int">
+        <![CDATA[
+            /* selectDataManegementBoardListToCnt */
+            select count(*) from hs_bbs_dh a
+        ]]>
+            <include refid="where_sql" />
+    </select>
+    <select id="selectDataManegementBoard" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+          /* selectDataManegementBoard */
+          select
+              dh_seq as seq,
+              title,
+              contents,
+              rmk,
+              use_yn,
+              a.att_file_mng_seq,
+              a.create_id,
+              (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+              a.update_id,
+              to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+              to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+              case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              file_seq file_file_seq,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from hs_bbs_dh a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            where a.dh_seq = #{seq}
+            order by b.file_seq asc
+        ]]>
+    </select>
+    <update id="updateDataManegementBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateDataManegementBoard */
+            update hs_bbs_dh set
+              title = #{title},
+              att_file_mng_seq = #{attFileMngSeq},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where dh_seq = #{seq}
+        ]]>
+    </update>
+    <insert id="insertDataManegementBoard" parameterType="boardVO">
+        <![CDATA[
+          /* insertDataManegementBoard */
+          insert into hs_bbs_dh (
+            dh_seq,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            #{title},
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_dh_seq')
+        </selectKey>
+    </insert>
+    <delete id="deleteDataManegementBoard" parameterType="boardVO">
+        <![CDATA[
+          /* deleteDataManegementBoard */
+          delete from hs_bbs_dh where dh_seq = #{seq}
+        ]]>
+    </delete>
+    <!--데이터도움말 끝-->
+    
+    <!--생각의 탄생 시작-->
+    <select id="selectThinkBoardList" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+            /* selectThinkBoardList */
+            select
+              a.*,
+              (select detail_nm from hs_detail_code where detail_cd = a.bbs_type_scd) bbs_type_nm,
+              file_seq file_file_seq,
+              file_data file_file_data,
+              file_nm file_file_nm,
+              file_size file_file_size,
+              b.att_file_mng_seq file_att_file_mng_seq
+            from (
+              select
+                row_number() over(order by a.think_seq asc) rownum,
+                a.think_seq as seq,
+                a.bbs_type_scd,
+                a.title,
+                a.contents,
+                a.rmk,
+                a.use_yn,
+                a.att_file_mng_seq,
+                a.create_id,
+                (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+                a.update_id,
+                to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+                to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+                case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+                b.think_seq as think_answer_seq,
+                b.upper_think_seq as think_answer_upper_think_seq,
+                b.att_file_mng_seq as think_answer_att_file_mng_seq
+              from hs_bbs_think a left outer join hs_bbs_think b on (a.think_seq = b.upper_think_seq)
+        ]]>
+              <include refid="where_sql" />
+        <![CDATA[
+                /* 답변이 아닌 것들 */
+                and a.upper_think_seq = 0
+              ) a left outer join hs_bbs_att_file b on(a.att_file_mng_seq = b.att_file_mng_seq)
+            order by a.seq desc, b.file_seq asc
+            limit #{recordCountPerPage} offset #{firstIndex}
+        ]]>
+    </select>
+    
+    <select id="selectThinkBoardListToCnt" parameterType="boardVO" resultType="int">
+        <![CDATA[
+            /* selectThinkBoardListToCnt */
+            select count(*) from hs_bbs_think a
+        ]]>
+            <include refid="where_sql" />
+    </select>
+    
+    <select id="selectThinkBoard" parameterType="boardVO" resultMap="boardVOResultMap">
+        <![CDATA[
+          /* selectThinkBoard */
+          select
+              a.think_seq as seq,
+              a.bbs_type_scd,
+              a.title,
+              a.contents,
+              a.rmk,
+              a.use_yn,
+              a.att_file_mng_seq,
+              a.create_id,
+              a.update_id,
+              (select user_name from hs_user_mst where user_id = a.create_id) as create_nm,
+              to_char(a.create_dt, 'YYYY-MM-DD') as create_dt,
+              to_char(a.update_dt, 'YYYY-MM-DD') as update_dt,
+              case when to_date(to_char(now(), 'YYYY-MM-DD'), 'YYYY-MM-DD') - to_date(to_char(a.create_dt, 'YYYY-MM-DD'), 'YYYY-MM-DD') < 2 then 'y' else 'n' end as is_new,
+              b.think_seq as think_answer_seq,
+              b.contents as think_answer_contents,
+              b.upper_think_seq as think_answer_upper_think_seq,
+              b.att_file_mng_seq as think_answer_att_file_mng_seq,
+              b.create_id as think_answer_create_id,
+              (select user_name from hs_user_mst where user_id = b.create_id) as think_answer_create_nm,
+              to_char(b.create_dt, 'YYYY-MM-DD') as think_answer_create_dt,
+              c.file_data file_file_data,
+              c.file_nm file_file_nm,
+              c.file_size file_file_size,
+              c.file_seq file_file_seq,
+              c.att_file_mng_seq file_att_file_mng_seq,
+              d.file_data answer_file_file_data,
+              d.file_nm answer_file_file_nm,
+              d.file_size answer_file_file_size,
+              d.file_seq answer_file_file_seq,
+              d.att_file_mng_seq answer_file_att_file_mng_seq
+            from hs_bbs_think a
+              left outer join hs_bbs_think b on (a.think_seq = b.upper_think_seq)
+              left outer join hs_bbs_att_file c on(a.att_file_mng_seq = c.att_file_mng_seq)
+              left outer join hs_bbs_att_file d on (b.att_file_mng_seq = d.att_file_mng_seq)
+            where a.think_seq = #{seq}
+            order by c.file_seq asc
+        ]]>
+    </select>
+    
+    <update id="updateThinkBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateThinkBoard */
+            update hs_bbs_think set
+              title = #{title},
+              bbs_type_scd = coalesce(#{bbsTypeScd}, ''),
+              att_file_mng_seq = #{attFileMngSeq},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where think_seq = #{seq}
+        ]]>
+    </update>
+    
+    <update id="updateThinkAnswerBoard" parameterType="boardVO">
+        <![CDATA[
+            /* updateThinkAnswerBoard */
+            update hs_bbs_think set
+              title = #{title},
+              att_file_mng_seq = #{attFileMngSeq},
+              bbs_type_scd = #{bbsTypeScd},
+              contents = #{contents},
+              rmk = #{rmk},
+              update_id = #{updateId},
+              update_dt = now()
+            where think_seq = #{seq}
+        ]]>
+    </update>
+    
+    <insert id="insertThinkBoard" parameterType="boardVO">
+        <![CDATA[
+          /* insertThinkBoard */
+          insert into hs_bbs_think (
+            think_seq,
+            upper_think_seq,
+            bbs_type_scd,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            0,
+            coalesce(#{bbsTypeScd}, ''),
+            #{title},
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_think_seq')
+        </selectKey>
+    </insert>
+    
+    <insert id="insertThinkAnswerBoard" parameterType="boardVO">
+        <![CDATA[
+          /* insertThinkAnswerBoard */
+          insert into hs_bbs_think (
+            think_seq,
+            upper_think_seq,
+            bbs_type_scd,
+            title,
+            contents,
+            rmk,
+            att_file_mng_seq,
+            use_yn,
+            create_id,
+            create_dt
+          )
+          values (
+            #{seq},
+            #{upperThinkSeq},
+            '',
+            '',
+            #{contents},
+            #{rmk},
+            #{attFileMngSeq},
+            'y',
+            #{createId},
+            now()
+          )
+        ]]>
+        <selectKey keyProperty="seq" order="BEFORE" resultType="bigdecimal">
+            select nextval('hs_bbs_think_seq')
+        </selectKey>
+    </insert>
+    
+    <delete id="deleteThinkBoard" parameterType="boardVO">
+        <![CDATA[
+          /* deleteThinkBoard */
+          delete from hs_bbs_think where think_seq = #{seq}
+        ]]>
+    </delete>
+    <!-- 생각의 탄생 끝-->
+    
+    <select id="selectHominNew" resultType="String">
+    	select * from homin_new;
+    </select>
+    
+    <insert id="insertleehomeen" parameterType="boardVO">
+    	insert into leehomeen(
+    		title,
+    		content
+    	)
+    	values(
+    		#(title),
+    		#(content)
+    	)
+    </insert>
+</mapper>

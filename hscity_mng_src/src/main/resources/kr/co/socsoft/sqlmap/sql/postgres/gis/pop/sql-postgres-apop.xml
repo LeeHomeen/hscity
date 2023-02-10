@@ -1,0 +1,900 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.pop.service.PopAnalsDao">
+	<!-- 인구/매출분석 _ 인구분석 -->
+	
+	<!-- 기간별 분석결과 -->
+	<select id="selectYearPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH hsp_rsgst_popltn_p_all AS(
+			 select std_ym, birth_year, 1 as hshld_constnt_co
+             ]]> 
+            	<choose>
+        			<when test="atype == 'area'">,h_emd_nm</when>
+            		<otherwise>,'사용자' as h_emd_nm</otherwise>
+            	</choose>
+             <![CDATA[
+            from ( ${dytbl} ) pop  		   
+            where
+            ]]> 
+            	<choose>
+            		<when test="period == 'month'">
+            			std_ym in (
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-0months', 'yyyyMM'),
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-1months', 'yyyyMM'),
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-2months', 'yyyyMM'),
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-3months', 'yyyyMM'),
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-4months', 'yyyyMM'),
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-5months', 'yyyyMM')
+            			)
+            		</when>
+            		<otherwise>
+            			std_ym in (
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-0years', 'yyyyMM'),
+            				to_char(to_timestamp(#{smonth}, 'yyyy-mm') + '-1years', 'yyyyMM')
+            			)
+            		</otherwise>
+            	</choose>
+        		<choose>
+        			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+            		<otherwise>
+            			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+            		</otherwise>
+            	</choose>
+            <![CDATA[				           
+		)
+		select 
+			coalesce(h_emd_nm, '전체') as div, 
+   			coalesce(std_ym, '합계') as item,  
+				sum(a) a, sum(b) b, sum(c) c, sum(d) d, sum(e) e, sum(f) f, sum(g) g, sum(h) h, sum(i) i, sum(j) j, sum(k) k, 
+       		sum(a+b+c+d+e+f+g+h+i+j+k) as tot
+		 from(
+		 	
+			 	select 
+			        h_emd_nm, std_ym, 
+			        sum(case when (age >= 0 and age <= 9) then tot else 0 end ) as a,
+			        sum(case when (age >= 10 and age <= 19) then tot else 0 end ) as b,
+			        sum(case when (age >= 20 and age <= 29) then tot else 0 end ) as c,
+			        sum(case when (age >= 30 and age <= 39) then tot else 0 end ) as d,			        
+			        sum(case when (age >= 40 and age <= 49) then tot else 0 end ) as e,			        
+			        sum(case when (age >= 50 and age <= 59) then tot else 0 end ) as f,
+			        sum(case when (age >= 60 and age <= 69) then tot else 0 end ) as g,
+			        sum(case when (age >= 70 and age <= 79) then tot else 0 end ) as h,
+			        sum(case when (age >= 80 and age <= 89) then tot else 0 end ) as i,
+			        sum(case when (age >= 90 and age <= 99) then tot else 0 end ) as j,
+			        sum(case when (age >= 100) then tot else 0 end ) as k
+			    from(
+			        select std_ym, (${syear}-birth_year) as age, sum(hshld_constnt_co) as tot, h_emd_nm
+			        from 
+			        (
+			            select std_ym, birth_year, hshld_constnt_co, h_emd_nm
+			            from hsp_rsgst_popltn_p_all
+			        )part1
+			        group by std_ym, birth_year, h_emd_nm
+			    )part2
+			    group by std_ym, h_emd_nm
+			    order by std_ym asc, h_emd_nm asc	
+			)pop 				
+			group by grouping sets ((h_emd_nm, std_ym), (h_emd_nm), ())			
+		]]>
+	</select>
+		
+	<!-- 기간별 분석_밀도 -->
+	<select id="selectYearPop_heat" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+		select hco, ( (st_x(geom) - ${MINX}) / ${RESOLUTION}) as stx, ( ( ${MAXY} - st_y(geom)) / ${RESOLUTION}) as sty
+		from
+		(
+			select 1 as hco, ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom 
+			from hsp_rsgst_popltn_p_${GYEAR.substring(0,4)}
+	   		WHERE std_ym in (#{GYEAR})
+	   		]]>
+	       	<choose>
+	       		<when test="ATYPE == 'area'">
+	       			and h_emd_cd in (${DONGCD})
+	       		</when>
+	       		<otherwise>
+	       			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+	       		</otherwise>
+	       	</choose>
+	     <![CDATA[
+	     )part1
+	     ]]>
+	</select>
+	<!-- 기간별 분석_격자
+			 select '' as std_ym, max(tot) as tot, '' as sncd, '' as wkt from anals_result where std_ym is not null group by std_ym 
+	-->
+	<select id="selectYearPop_grid" parameterType="popAnalsGisVO" resultType="egovMap">	
+		<![CDATA[		
+		WITH hsp_rsgst_popltn_p_all AS(
+			select std_ym, 1 as hshld_constnt_co, grid_id, h_emd_cd, geom
+			from hsp_rsgst_popltn_p_${GYEAR.substring(0,4)}
+			WHERE std_ym in (#{GYEAR})
+    		]]>
+	        	<choose>
+	        		<when test="ATYPE == 'area'">
+	        			and h_emd_cd in (${DONGCD})
+	        		</when>
+	        		<otherwise>
+	        			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+	        		</otherwise>
+	        	</choose>
+	        <![CDATA[ 	
+		),
+		anals_result AS(
+			select std_ym, sum(hshld_constnt_co) as tot, 0 as min, grid_id as sncd, wkt
+			from  			
+			(
+				    SELECT 
+				        spo_no_cd as sncd,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT spo_no_cd, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select spo_no_cd, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT spo_no_cd, geom 
+		        				FROM hm_grid_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom
+		            			) = true 
+		   					)part
+					        WHERE 
+					        ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		spo_no_cd in (select spo_no_cd from view_dong_grid where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+		        	        order by spo_no_cd 
+				    	)PART1
+				    )PART2
+				    GROUP BY spo_no_cd
+			)result1
+			left join
+			(
+				select std_ym, hshld_constnt_co, grid_id 
+				from hsp_rsgst_popltn_p_all	    		
+			) result2
+			on result1.sncd =  result2.grid_id
+			group by std_ym, grid_id, wkt
+		)
+		 select '' as std_ym, ${MAX} as tot, ${MIN} as min, '' as sncd, '' as wkt
+         union all                    
+         (select * from anals_result)
+		]]>
+	</select>
+	
+	<!-- 기간별 분석_벌집-->
+	<select id="selectYearPop_beehive" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		WITH hsp_rsgst_popltn_p_all AS(
+			select std_ym, 1 as hshld_constnt_co, hexagon_id, h_emd_cd, geom
+			from hsp_rsgst_popltn_p_${GYEAR.substring(0,4)}
+    		WHERE std_ym in (#{GYEAR})
+    		]]>
+	        	<choose>
+	        		<when test="ATYPE == 'area'">
+	        			and h_emd_cd in (${DONGCD})
+	        		</when>
+	        		<otherwise>
+	        			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+	        		</otherwise>
+	        	</choose>
+	        <![CDATA[
+		),anals_result AS(
+			select std_ym, sum(hshld_constnt_co) as tot, 0 as min, hexagon_id as hid, wkt
+			from  			
+			(	
+				SELECT 
+				        unique_id as id,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT unique_id, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select unique_id, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT unique_id, geom 
+		        				FROM hm_hexagons_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		   						)part
+					        WHERE 
+					         ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		unique_id in (select unique_id from view_dong_beehive where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+				        	order by unique_id 
+				    	)PART1
+				    )PART2
+				    GROUP BY unique_id
+				  )result1
+			left join
+			(
+				select std_ym, hshld_constnt_co, hexagon_id 
+				from hsp_rsgst_popltn_p_all
+			) result2
+			on result1.id =  result2.hexagon_id
+			group by std_ym, hexagon_id, wkt
+		)
+		 select '' as std_ym, ${MAX} as tot, ${MIN} as min, null as hid, '' as wkt
+         union all                    
+         (select * from anals_result)	
+		]]>
+	</select>
+	
+	<!-- 기간별 분석 범례정보-->
+	<select id="selectPopYearLgdInfo" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select max(tot) as max, min(tot) as min
+		from(
+			select sum(1) as tot
+			from hsp_rsgst_popltn_p_${gyear.substring(0,4)}
+    		WHERE std_ym in (#{gyear})
+    		]]>
+        	<choose>
+        		<when test="atype == 'area'">
+        			and h_emd_cd in (${dongcd})
+        		</when>
+        		<otherwise>
+        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+        		</otherwise>
+        	</choose>
+        	<if test="vtype == 'grid'">
+        		group by grid_id
+        	</if>
+        	<if test="vtype == 'beehive'">        	
+        		group by hexagon_id
+        	</if>
+        <![CDATA[
+        )part1
+        ]]>
+	</select>
+	
+	<!-- 성/연령별 분석 -->
+	<select id="selectGAPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[		
+		select  std_ym as ym,
+				case when div is null then '전체' else div end as div, 
+				case when age is null then '합계' else age end as age, 
+				item,
+				sum(mcnt) as mcnt, sum(wcnt) as wcnt, sum(tot) as tot
+		from(
+			select (ROW_NUMBER() OVER(order by birth asc)) AS rid, std_ym, h_emd_nm as div,
+					 birth as item,            
+		             birth || '세' as age, 
+		            COALESCE(sum(mcnt),0) as mcnt, COALESCE(sum(wcnt),0) as wcnt, (COALESCE(sum(mcnt),0) + COALESCE(sum(wcnt),0)) as tot
+		    from(
+					select std_ym, h_emd_nm, birth_year as birth,
+		        	case when sexdstn = '남' then sum(hshld_constnt_co) end as mcnt,
+		            case when sexdstn = '여' then sum(hshld_constnt_co) end as wcnt
+		         from(
+		            select std_ym, h_emd_nm, sexdstn, 1 as hshld_constnt_co, birth_year                  
+		            from(
+		                select std_ym, (${syear}-birth_year) as birth_year, hshld_constnt_co ,h_emd_nm, sexdstn
+		                from hsp_rsgst_popltn_p_${smonth.substring(0,4)}
+		                where 1=1
+		                ]]>		                	
+		                	<choose>
+		                		<when test='gender != "" and gender == "no"'>
+		                			and sexdstn != '남' and sexdstn != '여'
+		                		</when>
+		                		<otherwise>
+		                			<choose>
+		                				<when test='gender != "" and gender == "all"'>
+		                					and ( sexdstn = '남' or sexdstn = '여')
+		                				</when>
+		                				<otherwise>
+		                					<if test='mgender == "mm"'>and sexdstn = '남'</if>
+				                			<if test='wgender == "wm"'>and sexdstn = '여'</if>
+		                				</otherwise>
+		                			</choose>		                						                			
+		                		</otherwise>
+		                	</choose>		                	
+		                	<if test="smember != null and smember != ''">and hshld_constnt_co <![CDATA[>=]]> ${smember}</if>
+		            		<if test="emember != null and emember != ''">and hshld_constnt_co <![CDATA[<=]]> ${emember}</if>		            		
+		            		<choose>
+			        			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+			            		<otherwise>
+			            			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			            		</otherwise>
+			            	</choose>
+		                <![CDATA[
+		                    and std_ym = to_char(to_timestamp(#{smonth}, 'yyyy-mm'), 'yyyyMM')
+		            )part1 
+		            where 1=1
+		            ]]>
+		            	<if test="sage != null and sage != ''">and birth_year <![CDATA[>=]]> ${sage}</if>
+		            	<if test="eage != null and eage != ''">and birth_year <![CDATA[<=]]> ${eage}</if>
+		            <![CDATA[
+		        )part2
+		        group by std_ym, h_emd_nm, birth_year, sexdstn
+		    )part3
+		    group by std_ym, h_emd_nm, birth
+		)part4
+		group by grouping sets((rid, std_ym, div, item, age), (div), ())	
+		]]>
+	</select>
+	<!-- 성/연령별 분석_밀도 -->
+	<select id="selectGAPop_heat" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+		select hco, ( (st_x(geom) - ${MINX}) / ${RESOLUTION}) as stx, ( ( ${MAXY} - st_y(geom)) / ${RESOLUTION}) as sty
+		from
+		(
+			select 1 as hco, ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom 
+			from hsp_rsgst_popltn_p_${GYEAR.substring(0,4)}
+	   		WHERE std_ym in (#{GYEAR})
+	   		and birth_year = (${GYEAR.substring(0,4)} - ${AGE})
+	   		]]>         	
+               	<choose>
+               		<when test='GENDER != "" and GENDER == "no"'>
+               			and sexdstn != '남' and sexdstn != '여'
+               		</when>
+               		<otherwise>
+               			<choose>
+               				<when test='GENDER != "" and GENDER == "all"'>
+               					and ( sexdstn = '남' or sexdstn = '여')
+               				</when>
+               				<otherwise>
+               					<if test='MGENDER == "mm"'>and sexdstn = '남'</if>
+	                			<if test='WGENDER == "wm"'>and sexdstn = '여'</if>
+               				</otherwise>
+               			</choose>		                						                			
+               		</otherwise>
+               	</choose>		                	
+               	<if test="SMEMBER != null and SMEMBER != ''">and hshld_constnt_co <![CDATA[>=]]> ${SMEMBER}</if>
+           		<if test="EMEMBER != null and EMEMBER != ''">and hshld_constnt_co <![CDATA[<=]]> ${EMEMBER}</if>
+	       		<choose>
+		       		<when test="ATYPE == 'area'">
+		       			and h_emd_cd in (${DONGCD})
+		       		</when>
+		       		<otherwise>
+		       			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+		       		</otherwise>
+	       		</choose>	       	 
+	     <![CDATA[	     	
+	     )part1
+	     ]]>
+	</select>
+	<!-- 성/연령별 분석_격자 -->
+	<select id="selectGAPop_grid" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[			
+		WITH hsp_rsgst_popltn_p_all AS(
+			select std_ym, hshld_constnt_co, grid_id, h_emd_cd, geom
+			from hsp_rsgst_popltn_p_${GYEAR.substring(0,4)}
+			WHERE std_ym in (#{GYEAR})
+			and birth_year = (${GYEAR.substring(0,4)} - ${AGE})
+    		]]>
+    			<choose>
+               		<when test='GENDER != "" and GENDER == "no"'>
+               			and sexdstn != '남' and sexdstn != '여'
+               		</when>
+               		<otherwise>
+               			<choose>
+               				<when test='GENDER != "" and GENDER == "all"'>
+               					and ( sexdstn = '남' or sexdstn = '여')
+               				</when>
+               				<otherwise>
+               					<if test='MGENDER == "mm"'>and sexdstn = '남'</if>
+	                			<if test='WGENDER == "wm"'>and sexdstn = '여'</if>
+               				</otherwise>
+               			</choose>		                						                			
+               		</otherwise>
+               	</choose>		                	
+               	<if test="SMEMBER != null and SMEMBER != ''">and hshld_constnt_co <![CDATA[>=]]> ${SMEMBER}</if>
+           		<if test="EMEMBER != null and EMEMBER != ''">and hshld_constnt_co <![CDATA[<=]]> ${EMEMBER}</if>
+	        	<choose>
+	        		<when test="ATYPE == 'area'">
+	        			and h_emd_cd in (${DONGCD})
+	        		</when>
+	        		<otherwise>
+	        			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+	        		</otherwise>
+	        	</choose>
+	        <![CDATA[ 	
+		),
+		anals_result AS(
+			select std_ym, sum(hshld_constnt_co) as tot, 0 as min, grid_id as sncd, wkt
+			from  			
+			(
+				    SELECT 
+				        spo_no_cd as sncd,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT spo_no_cd, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select spo_no_cd, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT spo_no_cd, geom 
+		        				FROM hm_grid_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		   						)part
+					        WHERE 
+					        ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		spo_no_cd in (select spo_no_cd from view_dong_grid where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+		        	        order by spo_no_cd 
+				    	)PART1
+				    )PART2
+				    GROUP BY spo_no_cd
+			)result1
+			left join
+			(
+				select std_ym, 1 as hshld_constnt_co, grid_id 
+				from hsp_rsgst_popltn_p_all	    		
+			) result2
+			on result1.sncd =  result2.grid_id
+			group by std_ym, grid_id, wkt
+		)
+		 select '' as std_ym, ${MAX} as tot, ${MIN} as tot, '' as sncd, '' as wkt
+         union all                    
+         (select * from anals_result)
+		]]>
+	</select>
+	
+	<!-- 성/연령별 분석_벌집-->
+	<select id="selectGAPop_beehive" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[			
+		WITH hsp_rsgst_popltn_p_all AS(
+			select std_ym, hshld_constnt_co, hexagon_id, h_emd_cd, geom
+			from hsp_rsgst_popltn_p_${GYEAR.substring(0,4)}
+    		WHERE std_ym in (#{GYEAR})
+    		and birth_year = (${GYEAR.substring(0,4)} - ${AGE})
+    		]]>
+    			<choose>
+               		<when test='GENDER != "" and GENDER == "no"'>
+               			and sexdstn != '남' and sexdstn != '여'
+               		</when>
+               		<otherwise>
+               			<choose>
+               				<when test='GENDER != "" and GENDER == "all"'>
+               					and ( sexdstn = '남' or sexdstn = '여')
+               				</when>
+               				<otherwise>
+               					<if test='MGENDER == "mm"'>and sexdstn = '남'</if>
+	                			<if test='WGENDER == "wm"'>and sexdstn = '여'</if>
+               				</otherwise>
+               			</choose>		                						                			
+               		</otherwise>
+               	</choose>		                	
+               	<if test="SMEMBER != null and SMEMBER != ''">and hshld_constnt_co <![CDATA[>=]]> ${SMEMBER}</if>
+           		<if test="EMEMBER != null and EMEMBER != ''">and hshld_constnt_co <![CDATA[<=]]> ${EMEMBER}</if>
+	        	<choose>
+	        		<when test="ATYPE == 'area'">
+	        			and h_emd_cd in (${DONGCD})
+	        		</when>
+	        		<otherwise>
+	        			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+	        		</otherwise>
+	        	</choose>
+	        <![CDATA[
+		),anals_result AS(
+			select std_ym, sum(hshld_constnt_co) as tot, 0 as min, hexagon_id as hid, wkt
+			from  			
+			(	
+				SELECT 
+				        unique_id as id,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT unique_id, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select unique_id, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT unique_id, geom 
+		        				FROM hm_hexagons_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		   						)part
+					        WHERE 
+					         ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		unique_id in (select unique_id from view_dong_beehive where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+				        	order by unique_id 
+				    	)PART1
+				    )PART2
+				    GROUP BY unique_id
+				  )result1
+			left join
+			(
+				select std_ym, 1 as hshld_constnt_co, hexagon_id 
+				from hsp_rsgst_popltn_p_all
+			) result2
+			on result1.id =  result2.hexagon_id
+			group by std_ym, hexagon_id, wkt
+		)
+		 select '' as std_ym, ${MAX} as tot, ${MIN} as tot, null as hid, '' as wkt
+         union all                    
+         (select * from anals_result)
+		]]>
+	</select>
+	
+	<!-- 성 연령별 분석 범례정보-->
+	<select id="selectPopGALgdInfo" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select max(tot) as max, min(tot) as min
+		from(
+			select sum(1) as tot
+			from hsp_rsgst_popltn_p_${gyear.substring(0,4)}
+    		WHERE std_ym in (#{gyear})
+    		and birth_year = (${gyear.substring(0,4)} - ${age})
+    		]]>
+    			<choose>
+               		<when test='gender != "" and gender == "no"'>
+               			and sexdstn != '남' and sexdstn != '여'
+               		</when>
+               		<otherwise>
+               			<choose>
+               				<when test='gender != "" and gender == "all"'>
+               					and ( sexdstn = '남' or sexdstn = '여')
+               				</when>
+               				<otherwise>
+               					<if test='mgender == "mm"'>and sexdstn = '남'</if>
+	                			<if test='wgender == "wm"'>and sexdstn = '여'</if>
+               				</otherwise>
+               			</choose>		                						                			
+               		</otherwise>
+               	</choose>		                	
+               	<if test="smember != null and smember != ''">and hshld_constnt_co <![CDATA[>=]]> ${smember}</if>
+           		<if test="emember != null and emember != ''">and hshld_constnt_co <![CDATA[<=]]> ${emember}</if>
+	        	<choose>
+	        		<when test="atype == 'area'">
+	        			and h_emd_cd in (${dongcd})
+	        		</when>
+	        		<otherwise>
+	        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+	        		</otherwise>
+	        	</choose>
+	        	<if test="vtype == 'grid'">
+	        		group by grid_id
+	        	</if>
+	        	<if test="vtype == 'beehive'">        	
+	        		group by hexagon_id
+	        	</if>
+		  <![CDATA[
+        )part1        
+		]]>
+	</select>
+	
+	<!-- 전입 분석 지역/전입자수 상위 30-->
+	<select id="selectInPopCntList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[	
+		select case when item is null then '1' else '2' end as chk,
+			   case when item is null then '합계' else item end as item, 
+	 		   sum(cnt) as cnt
+		from(
+		
+			select 
+				trnsfrn_bfe_h_emd_cd, 
+    			(trnsfrn_bfe_sig_nm || ' ' || emd.adm_nm) as item,
+    			cnt 
+			from(
+					
+				select trnsfrn_bfe_sig_nm, trnsfrn_bfe_h_emd_cd, sum(1) as cnt 
+				from 
+					hsp_mvinnm_p_${smonth.substring(0,4)}
+				where 
+					std_ym in (#{smonth})
+					]]>
+			        	<choose>
+			        		<when test="atype == 'area'">
+			        			and trnsfrn_aft_h_emd_cd in (${dongcd})
+			        		</when>
+			        		<otherwise>
+			        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			        		</otherwise>
+			        	</choose>
+			        	<if test="range == 'in'">
+			        		and trnsfrn_bfe_h_emd_cd like '41590%'
+			        	</if>
+			        	<if test="range == 'out'">
+			        		and trnsfrn_bfe_h_emd_cd not like '41590%'
+			        	</if>
+				    <![CDATA[
+				group by trnsfrn_bfe_sig_nm, trnsfrn_bfe_h_emd_cd
+			)part1  left join hm_bnd_adm_dong_pg_a emd
+			on part1.trnsfrn_bfe_h_emd_cd = emd.adm_cd
+			where emd.gubun = #{gubun}					
+		)part2  
+		where item is not null
+		group by grouping sets((trnsfrn_bfe_h_emd_cd, item),())
+		order by chk desc, cnt desc	
+		]]>
+	</select>
+	<!-- 전입 분석 요인/건수 -->
+	<select id="selectInPopResnList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[		
+		select case when item is null then '1' else '2' end as chk, 
+			   case when item is null then '합계' else item end as item,
+	 	  	   sum(cnt) as cnt
+		from(	
+		
+				select trnsfrn_resn as item, count(*) as cnt
+				from hsp_mvinnm_p_${smonth.substring(0,4)}
+				where std_ym in (#{smonth})
+				]]>
+		        	<choose>
+		        		<when test="atype == 'area'">
+		        			and trnsfrn_aft_h_emd_cd in (${dongcd})
+		        		</when>
+		        		<otherwise>
+		        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		        		</otherwise>
+		        	</choose>
+		        	<if test="range == 'in'">
+		        		and trnsfrn_bfe_h_emd_cd like '41590%'
+		        	</if>
+		        	<if test="range == 'out'">
+		        		and trnsfrn_bfe_h_emd_cd not like '41590%'
+		        	</if>
+			    <![CDATA[
+				group by trnsfrn_resn				
+		)part1
+		where item is not null  
+		group by grouping sets((item),())
+		order by chk desc, cnt desc
+		]]>
+	</select>
+	<!-- 전입 분석 geom 정보-->
+	<select id="selectInPopGeomList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[	
+		WITH hsp_mvinnm_p_all AS(
+			select sum(cnt) as cnt, 0 as min, line, bpoint, hpoint, item
+    		from(
+				select cnt, 
+					   ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+					   ST_ASTEXT(bgeom) bpoint, 
+					   ST_ASTEXT(hgeom) hpoint,
+					   trnsfrn_bfe_h_emd_nm as item
+				from(
+		    		select hcco as cnt,
+		    			   ]]>
+		    			   		<choose>
+						        	<when test="atype == 'area'">					        		
+						        		ST_Centroid(ST_Transform(hemd.geom, replace(${coord}::text,'900913','4326')::int)) as hgeom,
+						        	</when>
+						        	<otherwise>
+						        		ST_Centroid(ST_Transform(
+						        			ST_Centroid(ST_GeomFromText('${area}', 4326))
+						        		, replace(${coord}::text,'900913','4326')::int)) as hgeom,
+						        	</otherwise>
+						        </choose>
+		    			   <![CDATA[
+		    			   ST_Centroid(ST_Transform(bemd.geom, replace(${coord}::text,'900913','4326')::int)) as bgeom,
+		    			   bemd.adm_nm as trnsfrn_bfe_h_emd_nm
+		    		from(
+		    			 select trnsfrn_aft_h_emd_cd, trnsfrn_bfe_h_emd_cd, sum(hcco) as hcco
+		    			from(
+					        select 
+					        	trnsfrn_aft_h_emd_cd,
+					        	trnsfrn_bfe_h_emd_cd, 
+					        	1 as hcco
+					        from 
+					        	hsp_mvinnm_p_${smonth.substring(0,4)}
+					        where 
+					        	std_ym in (#{smonth})
+					        	]]>
+						        	<choose>
+						        		<when test="atype == 'area'">
+						        			and trnsfrn_aft_h_emd_cd in (${dongcd})
+						        		</when>
+						        		<otherwise>
+						        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+						        		</otherwise>
+						        	</choose>
+						        	<if test="range == 'in'">
+						        		and trnsfrn_bfe_h_emd_cd like '41590%'
+						        	</if>
+						        	<if test="range == 'out'">
+						        		and trnsfrn_bfe_h_emd_cd not like '41590%'
+						        	</if>
+							    <![CDATA[			        	
+				        )result
+				        group by trnsfrn_aft_h_emd_cd,  trnsfrn_bfe_h_emd_cd		        		        
+				    )part1
+				    left join hm_bnd_adm_dong_pg_a bemd
+				    on part1.trnsfrn_bfe_h_emd_cd = bemd.adm_cd
+				    left join hm_bnd_adm_dong_pg_a hemd
+				    on part1.trnsfrn_aft_h_emd_cd = hemd.adm_cd
+				    where hemd.gubun = #{gubun}  and bemd.gubun = #{gubun}
+				)part2
+			)part3
+    		group by line, bpoint, hpoint, item
+		)
+		select max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint, null as item from hsp_mvinnm_p_all 
+		union all
+		(select * from hsp_mvinnm_p_all order by cnt desc)
+		]]>
+	</select>
+	
+	
+	<!-- 전출 분석 지역/전출자수 -->
+	<select id="selectOutPopCntList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select case when item is null then '1' else '2' end as chk,
+			   case when item is null then '합계' else item end as item, 
+	 		   sum(cnt) as cnt
+		from(
+		
+			select 
+				mvt_aft_h_emd_cd, 
+    			(mvt_aft_sig_nm || ' ' || emd.adm_nm) as item,
+    			cnt 
+			from(
+					
+				select mvt_aft_sig_nm, mvt_aft_h_emd_cd, sum(1) as cnt 
+				from 
+					hsp_mvotnm_p_${smonth.substring(0,4)}
+				where 
+					std_ym in (#{smonth})
+					]]>
+			        	<choose>
+			        		<when test="atype == 'area'">
+			        			and mvt_bfe_h_emd_cd in (${dongcd})
+			        		</when>
+			        		<otherwise>
+			        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+			        		</otherwise>
+			        	</choose>
+			        	<if test="range == 'in'">
+			        		and mvt_aft_h_emd_cd like '41590%'
+			        	</if>
+			        	<if test="range == 'out'">
+			        		and mvt_aft_h_emd_cd not like '41590%'
+			        	</if>
+				    <![CDATA[
+				group by mvt_aft_sig_nm, mvt_aft_h_emd_cd
+			)part1  left join hm_bnd_adm_dong_pg_a emd
+			on part1.mvt_aft_h_emd_cd = emd.adm_cd
+			where emd.gubun = #{gubun}					
+		)part2  
+		where item is not null
+		group by grouping sets((mvt_aft_h_emd_cd, item),())
+		order by chk desc, cnt desc				
+		]]>
+	</select>
+	<!-- 전출 분석 요인/건수 -->
+	<select id="selectOutPopResnList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[	
+		select case when item is null then '1' else '2' end as chk, 
+			   case when item is null then '합계' else item end as item,
+	 	  	   sum(cnt) as cnt
+		from(	
+		
+				select mvt_resn as item, count(*) as cnt
+				from hsp_mvotnm_p_${smonth.substring(0,4)}
+				where std_ym in (#{smonth})
+				]]>
+		        	<choose>
+		        		<when test="atype == 'area'">
+		        			and mvt_bfe_h_emd_cd in (${dongcd})
+		        		</when>
+		        		<otherwise>
+		        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		        		</otherwise>
+		        	</choose>
+		        	<if test="range == 'in'">
+		        		and mvt_aft_h_emd_cd like '41590%'
+		        	</if>
+		        	<if test="range == 'out'">
+		        		and mvt_aft_h_emd_cd not like '41590%'
+		        	</if>
+			    <![CDATA[
+				group by mvt_resn
+				
+		)part1
+		where item is not null  
+		group by grouping sets((item),())
+		order by chk desc, cnt desc		
+		]]>
+	</select>
+	
+	<!-- 전츨 분석 geom 정보-->
+	<select id="selectOutPopGeomList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH hsp_mvotnm_p_all AS(
+			select sum(cnt) as cnt, 0 as min, line, bpoint, hpoint, item
+    		from(
+				select cnt, 
+					   ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) as line, 
+					   ST_ASTEXT(bgeom) bpoint, 
+					   ST_ASTEXT(hgeom) hpoint,
+					   mvt_aft_h_emd_nm as item
+				from(
+		    		select hcco as cnt,
+		    			   ]]>
+		    			   		<choose>
+						        	<when test="atype == 'area'">					        		
+						        		ST_Centroid(ST_Transform(hemd.geom, replace(${coord}::text,'900913','4326')::int)) as hgeom,
+						        	</when>
+						        	<otherwise>
+						        		ST_Centroid(ST_Transform(
+						        			ST_Centroid(ST_GeomFromText('${area}', 4326))
+						        		, replace(${coord}::text,'900913','4326')::int)) as hgeom,
+						        	</otherwise>
+						        </choose>
+		    			   <![CDATA[
+		    			   ST_Centroid(ST_Transform(bemd.geom, replace(${coord}::text,'900913','4326')::int)) as bgeom,
+		    			   bemd.adm_nm as mvt_aft_h_emd_nm
+		    		from(
+		    			 select mvt_bfe_h_emd_cd, mvt_aft_h_emd_cd, sum(hcco) as hcco
+		    			from(
+					        select 
+					        	mvt_bfe_h_emd_cd,
+					        	mvt_aft_h_emd_cd, 
+					        	1 as hcco
+					        from 
+					        	hsp_mvotnm_p_${smonth.substring(0,4)}
+					        where 
+					        	std_ym in (#{smonth})
+					        	]]>
+						        	<choose>
+						        		<when test="atype == 'area'">
+						        			and mvt_bfe_h_emd_cd in (${dongcd})
+						        		</when>
+						        		<otherwise>
+						        			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+						        		</otherwise>
+						        	</choose>
+						        	<if test="range == 'in'">
+						        		and mvt_aft_h_emd_cd like '41590%'
+						        	</if>
+						        	<if test="range == 'out'">
+						        		and mvt_aft_h_emd_cd not like '41590%'
+						        	</if>
+							    <![CDATA[			        	
+				        )result
+				        group by mvt_bfe_h_emd_cd,  mvt_aft_h_emd_cd		        		        
+				    )part1
+				    left join hm_bnd_adm_dong_pg_a bemd
+				    on part1.mvt_aft_h_emd_cd = bemd.adm_cd
+				    left join hm_bnd_adm_dong_pg_a hemd
+				    on part1.mvt_bfe_h_emd_cd = hemd.adm_cd
+				    where hemd.gubun = #{gubun}  and bemd.gubun = #{gubun}
+				)part2
+			)part3
+    		group by line, bpoint, hpoint, item
+		)
+		select max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint, null as item from hsp_mvotnm_p_all 
+		union all
+		(select * from hsp_mvotnm_p_all order by cnt desc)
+		]]>
+	</select>
+	
+</mapper>

@@ -1,0 +1,1877 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.pop.service.FPopAnalsDao">
+	<!-- 기간별 분석결과 -->
+	<select id="selectYearFPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select 
+				  case when emdcd is null then '합계' else emdcd end as emdcd,
+				  case when item is null then '합계' else item end as item, 
+				  case when div is null then '전체' else div end as div,
+			      sum(m10+w10) as p10, sum(m20+w20) as p20, 
+			      sum(m30+w30) as p30, sum(m40+w40) as p40, 
+			      sum(m50+w50) as p50, sum(m60+w60) as p60, 
+			      sum(m70+w70) as p70,		  
+				  sum((m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70)) as tot
+			from(
+			
+				select 
+					sum((coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0))) as m10,
+					sum((coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0))) as m20,
+					sum((coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0))) as m30,
+					sum((coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0))) as m40,
+					sum((coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0))) as m50,
+					sum((coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0))) as m60,
+					sum(coalesce(man_flow_pop_cnt_70u,0)) as m70,
+					sum((coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0))) as w10,
+					sum((coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0))) as w20,
+					sum((coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0))) as w30,
+					sum((coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0))) as w40,
+					sum((coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0))) as w50,
+					sum((coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0))) as w60,
+					sum(coalesce(wman_flow_pop_cnt_70u,0)) as w70,
+					h_emd_cd as emdcd, h_emd_nm as div,
+				]]> 
+					<choose><when test="std == 'day'">std_ymd as item</when><otherwise>std_ym as item</otherwise></choose>
+				<![CDATA[					
+				from ( ${dytbl} )pop
+				where 1=1
+			]]>				
+				<choose>
+           			<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and std_ymd <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and std_ymd <![CDATA[<=]]> #{eday}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="smonth != null and smonth != ''">
+	                		and std_ym <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and std_ym <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>
+           		</choose>  
+				<choose>
+        			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+            		<otherwise>
+            			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+            		</otherwise>
+            	</choose>				
+			 <![CDATA[
+			 	group by h_emd_cd, h_emd_nm,
+			 ]]> 
+				<choose><when test="std == 'day'">std_ymd</when><otherwise>std_ym</otherwise></choose>
+			<![CDATA[	
+			)part1
+			group by grouping sets((emdcd, item, div), (emdcd, div), ()) 
+			order by emdcd, item asc		
+		]]>
+	</select>	
+	
+	<!-- 기간별 분석_밀도  (의미없음) -->
+	<select id="selectYearFPop_heat" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		select (m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as tot, 
+			   ( (st_x(geom) - ${MINX}) / ${RESOLUTION}) as stx, ( ( ${MAXY} - st_y(geom)) / ${RESOLUTION}) as sty
+		from
+		(
+			select 
+				(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+				(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+				(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+				(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+				(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+				(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+				(coalesce(man_flow_pop_cnt_70u,0)) as m70,
+				(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+				(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+				(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+				(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+				(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+				(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+				(coalesce(wman_flow_pop_cnt_70u,0)) as w70,			 
+				ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom 
+			from 
+				skt_hs_flow_pop_age_p_${GYEAR.substring(0,6)}
+	   		WHERE 1=1
+	   		]]>
+	       	<choose>
+          		<when test="STD == 'day'">			        			
+	        		and std_ymd in (#{GYEAR})
+          		</when>
+          		<otherwise>
+          			and std_ym in (#{GYEAR})
+	        	</otherwise>
+          	</choose> 
+			<choose>
+       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+           		<otherwise>
+           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+           		</otherwise>
+           	</choose>	
+	     <![CDATA[
+	     )part1	    
+	     ]]>
+	</select>
+	
+	<!-- 기간별 분석_그리드 -->
+	<select id="selectYearFPop_grid" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+			WITH skt_hs_flow_pop_age_all AS(
+				select (m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as tot, 
+				geom, grid_id, h_emd_cd
+				from ( 
+					select 
+						(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+						(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+						(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+						(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+						(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+						(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+						(coalesce(man_flow_pop_cnt_70u,0)) as m70,
+						(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+						(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+						(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+						(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+						(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+						(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+						(coalesce(wman_flow_pop_cnt_70u,0)) as w70,
+						ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom, 
+						grid_id, h_emd_cd
+					from skt_hs_flow_pop_age_p_${GYEAR.substring(0,6)}
+					WHERE 1=1 
+					]]>
+				       	<choose>
+			          		<when test="STD == 'day'">			        			
+				        		and std_ymd in (#{GYEAR})
+			          		</when>
+			          		<otherwise>
+			          			and std_ym in (#{GYEAR})
+				        	</otherwise>
+			          	</choose>  
+						<choose>
+			       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+			           		<otherwise>
+			           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			           		</otherwise>
+			           	</choose>	
+				     <![CDATA[
+				)part1 
+			),
+			anals_result AS(
+				select sum(tot) as tot, 0 as min, grid_id as sncd, wkt
+				from  			
+				(
+					    SELECT 
+					        spo_no_cd as sncd,
+					       	'POLYGON((' || array_to_string(  array_agg( 
+					        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+					        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+					    FROM(
+					    	 SELECT spo_no_cd, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+			    			FROM(
+					        	select spo_no_cd, 
+					        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+					        	from (
+			        				SELECT spo_no_cd, geom 
+			        				FROM hm_grid_100m_a 
+			    					WHERE ST_Intersects( 
+			            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+			   						)part
+						        WHERE 
+						        ]]>
+						        <choose>
+						        	<when test="ATYPE == 'area'">
+						        		spo_no_cd in (select spo_no_cd from view_dong_grid where adm_cd in (${DONGCD}))
+						        	</when>
+						        	<otherwise>
+						        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+						        	</otherwise>
+						        </choose>
+						        <![CDATA[
+			        	        order by spo_no_cd 
+					    	)PART1
+					    )PART2
+					    GROUP BY spo_no_cd
+				)result1
+				left join
+				(
+					select tot, grid_id 
+					from skt_hs_flow_pop_age_all	    		
+				) result2
+				on result1.sncd =  result2.grid_id
+				group by grid_id, wkt
+			)
+			select ${MAX} as tot, ${MIN} as min, '' as sncd, '' as wkt
+	        union all                    
+	        (select * from anals_result)			
+	     ]]>
+	</select>
+	
+	<!-- 기간별 분석_그리드 -->
+	<select id="selectYearFPop_beehive" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+			WITH skt_hs_flow_pop_age_all AS(
+				select (m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as tot, 
+				geom, hexagon_id, h_emd_cd
+				from ( 
+					select 
+						(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+						(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+						(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+						(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+						(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+						(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+						(coalesce(man_flow_pop_cnt_70u,0)) as m70,
+						(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+						(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+						(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+						(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+						(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+						(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+						(coalesce(wman_flow_pop_cnt_70u,0)) as w70,
+						ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom, 
+						hexagon_id, h_emd_cd
+					from skt_hs_flow_pop_age_p_${GYEAR.substring(0,6)}
+					WHERE 1=1 
+					]]>
+				       	<choose>
+			          		<when test="STD == 'day'">			        			
+				        		and std_ymd in (#{GYEAR})
+			          		</when>
+			          		<otherwise>
+			          			and std_ym in (#{GYEAR})
+				        	</otherwise>
+			          	</choose>  
+						<choose>
+			       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+			           		<otherwise>
+			           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			           		</otherwise>
+			           	</choose>	
+				     <![CDATA[
+				)part1 
+			),
+			anals_result AS(
+				select sum(tot) as tot, 0 as min, hexagon_id as hid, wkt
+				from  			
+				(
+					SELECT 
+				        unique_id as id,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT unique_id, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select unique_id, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT unique_id, geom 
+		        				FROM hm_hexagons_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		   						)part
+					        WHERE 
+					         ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		unique_id in (select unique_id from view_dong_beehive where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+				        	order by unique_id 
+				    	)PART1
+				    )PART2
+				    GROUP BY unique_id
+				)result1
+				left join
+				(
+					select tot, hexagon_id 
+					from skt_hs_flow_pop_age_all	    		
+				) result2
+				on result1.id =  result2.hexagon_id
+				group by hexagon_id, wkt
+			)
+			select ${MAX} as tot, ${MIN} as min, null as hid, '' as wkt
+	        union all                    
+	        (select * from anals_result)			
+	     ]]>
+	</select>
+	
+	<!-- 기간별 분석 범례정보-->
+	<select id="selectFPopYearLgdInfo" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select max(tot) as max, min(tot) as min
+		from(
+			select 
+				sum((m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70)) as tot
+			from ( 
+					select 
+						(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+						(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+						(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+						(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+						(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+						(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+						(coalesce(man_flow_pop_cnt_70u,0)) as m70,
+						(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+						(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+						(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+						(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+						(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+						(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+						(coalesce(wman_flow_pop_cnt_70u,0)) as w70,
+						grid_id, hexagon_id
+					from skt_hs_flow_pop_age_p_${gyear.substring(0,6)}
+					WHERE 1=1 
+				]]>
+		       		<choose>
+		          		<when test="std == 'day'">			        			
+			        		and std_ymd in (#{gyear})
+		          		</when>
+		          		<otherwise>
+		          			and std_ym in (#{gyear})
+			        	</otherwise>
+		          	</choose>   
+					<choose>
+		       			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+		           		<otherwise>
+		           			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		           		</otherwise>
+		           	</choose>	
+			     <![CDATA[
+			)part1
+			]]>
+			<if test="vtype == 'grid'">
+        		group by grid_id
+        	</if>
+        	<if test="vtype == 'beehive'">        	
+        		group by hexagon_id
+        	</if>
+			<![CDATA[			
+		)result
+		]]>
+	</select>
+	
+	
+	<!-- 성연령별 분석결과 -->
+	<select id="selectGAFPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select case when item is null then '합계' else item end as item, 
+				  case when div is null then '전체' else div end as div,
+			      sum(m10) as m10, sum(m20) as m20, sum(m30) as m30, sum(m40) as m40, sum(m50) as m50, sum(m60) as m60, sum(m70) as m70,
+				  sum(w10) as w10, sum(w20) as w20, sum(w30) as w30, sum(w40) as w40, sum(w50) as w50, sum(w60) as w60, sum(w70) as w70,
+				  sum((
+				  	(case when m10 = -999 then 0 else m10 end ) +
+				  	(case when m20 = -999 then 0 else m20 end ) +
+				  	(case when m30 = -999 then 0 else m30 end ) +
+				  	(case when m40 = -999 then 0 else m40 end ) +
+				  	(case when m50 = -999 then 0 else m50 end ) +
+				  	(case when m60 = -999 then 0 else m60 end ) +
+				  	(case when m70 = -999 then 0 else m70 end ) +
+				  	(case when w10 = -999 then 0 else w10 end ) +
+				  	(case when w20 = -999 then 0 else w20 end ) +
+				  	(case when w30 = -999 then 0 else w30 end ) +
+				  	(case when w40 = -999 then 0 else w40 end ) +
+				  	(case when w50 = -999 then 0 else w50 end ) +
+				  	(case when w60 = -999 then 0 else w60 end ) +
+				  	(case when w70 = -999 then 0 else w70 end ) 
+				  	)) as tot
+			from(
+			
+				select 				       
+			]]>
+				<choose>
+					<when test="age.indexOf('1m') > -1">					
+						sum((coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0))) as m10,
+					</when><otherwise> -999 as m10,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('2m') > -1">					
+						sum((coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0))) as m20,
+					</when><otherwise> -999 as m20,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('3m') > -1">					
+						sum((coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0))) as m30,
+					</when><otherwise> -999 as m30,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('4m') > -1">					
+						sum((coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0))) as m40,
+					</when><otherwise> -999 as m40,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('5m') > -1">					
+						sum((coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0))) as m50,
+					</when><otherwise> -999 as m50,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('6m') > -1">					
+						sum((coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0))) as m60,
+					</when><otherwise> -999 as m60,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('7m') > -1">					
+						sum(coalesce(man_flow_pop_cnt_70u,0)) as m70,
+					</when><otherwise> -999 as m70,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('1f') > -1">					
+						sum((coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0))) as w10,
+					</when><otherwise> -999 as w10,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('2f') > -1">					
+						sum((coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0))) as w20,
+					</when><otherwise> -999 as w20,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('3f') > -1">					
+						sum((coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0))) as w30,
+					</when><otherwise> -999 as w30,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('4f') > -1">					
+						sum((coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0))) as w40,
+					</when><otherwise> -999 as w40,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('5f') > -1">					
+						sum((coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0))) as w50,
+					</when><otherwise> -999 as w50,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('6f') > -1">					
+						sum((coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0))) as w60,
+					</when><otherwise> -999 as w60,</otherwise>
+				</choose>
+				<choose>
+					<when test="age.indexOf('7f') > -1">					
+						sum(coalesce(wman_flow_pop_cnt_70u,0)) as w70,
+					</when><otherwise> -999 as w70,</otherwise>
+				</choose>
+			<![CDATA[
+					  h_emd_cd as item, h_emd_nm as div
+				from (  ${dytbl} ) pop
+				where 1=1
+			]]>					
+				<choose>
+           			<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and std_ymd <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and std_ymd <![CDATA[<=]]> #{eday}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="smonth != null and smonth != ''">
+	                		and std_ym <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and std_ym <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>
+           		</choose>  
+				<choose>
+        			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+            		<otherwise>
+            			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+            		</otherwise>
+            	</choose>				
+			 <![CDATA[
+			 	group by h_emd_cd, h_emd_nm
+			)part1
+			group by grouping sets((item, div), ()) 
+			order by item		
+		]]>
+	</select>
+		
+	<!-- 기간별 분석_밀도  (의미없음) -->
+	<select id="selectGAFPop_heat" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+		select (m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as tot, 
+			   ( (st_x(geom) - ${MINX}) / ${RESOLUTION}) as stx, ( ( ${MAXY} - st_y(geom)) / ${RESOLUTION}) as sty
+		from
+		(
+			select 
+		]]>
+			<choose>
+				<when test="AGE.indexOf('1m') > -1">					
+					(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+				</when><otherwise> 0 as m10,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('2m') > -1">					
+					(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+				</when><otherwise> 0 as m20,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('3m') > -1">					
+					(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+				</when><otherwise> 0 as m30,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('4m') > -1">					
+					(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+				</when><otherwise> 0 as m40,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('5m') > -1">					
+					(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+				</when><otherwise> 0 as m50,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('6m') > -1">					
+					(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+				</when><otherwise> 0 as m60,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('7m') > -1">					
+					coalesce(man_flow_pop_cnt_70u,0) as m70,
+				</when><otherwise> 0 as m70,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('1f') > -1">					
+					(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+				</when><otherwise> 0 as w10,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('2f') > -1">					
+					(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+				</when><otherwise> 0 as w20,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('3f') > -1">					
+					(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+				</when><otherwise> 0 as w30,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('4f') > -1">					
+					(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+				</when><otherwise> 0 as w40,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('5f') > -1">					
+					(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+				</when><otherwise> 0 as w50,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('6f') > -1">					
+					(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+				</when><otherwise> 0 as w60,</otherwise>
+			</choose>
+			<choose>
+				<when test="AGE.indexOf('7f') > -1">					
+					coalesce(wman_flow_pop_cnt_70u,0) as w70,
+				</when><otherwise> 0 as w70,</otherwise>
+			</choose>
+		<![CDATA[				 
+				ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom 
+			from ( ${DYTBL} ) pop				
+	   		WHERE 1=1
+	   		]]>
+	       	<choose>
+          		<when test="STD == 'day'">
+        			<if test="SDAY != null and SDAY != ''">
+                		and std_ymd <![CDATA[>=]]> #{SDAY} 
+                	</if>
+                	<if test="EDAY != null and EDAY != ''">
+	        			and std_ymd <![CDATA[<=]]> #{EDAY}
+	        		</if>
+          		</when>
+          		<otherwise>
+          				<if test="SMONTH != null and SMONTH != ''">
+                		and std_ym <![CDATA[>=]]> #{SMONTH} 
+                	</if>
+                	<if test="EMONTH != null and EMONTH != ''">
+	        			and std_ym <![CDATA[<=]]> #{EMONTH}
+	        		</if>
+	        	</otherwise>
+          	</choose>  
+			<choose>
+       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+           		<otherwise>
+           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+           		</otherwise>
+           	</choose>	
+	     <![CDATA[
+	     )part1
+	     where 
+	     	m10 > 0 or m20 > 0 or m30 > 0 or m40 > 0 or m50 > 0 or m60 > 0 or m70 > 0 or
+	     	w10 > 0 or w20 > 0 or w30 > 0 or w40 > 0 or w50 > 0 or w60 > 0 or w70 > 0
+	     ]]>
+	</select>	
+	
+	<!-- 기간별 분석_그리드 -->
+	<select id="selectGAFPop_grid" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+			WITH skt_hs_flow_pop_age_all AS(
+				select (m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as tot, 
+				geom, grid_id, h_emd_cd
+				from ( 
+					select 
+						]]>
+							<choose>
+								<when test="AGE.indexOf('1m') > -1">					
+									(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+								</when><otherwise> 0 as m10,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('2m') > -1">					
+									(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+								</when><otherwise> 0 as m20,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('3m') > -1">					
+									(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+								</when><otherwise> 0 as m30,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('4m') > -1">					
+									(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+								</when><otherwise> 0 as m40,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('5m') > -1">					
+									(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+								</when><otherwise> 0 as m50,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('6m') > -1">					
+									(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+								</when><otherwise> 0 as m60,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('7m') > -1">					
+									coalesce(man_flow_pop_cnt_70u,0) as m70,
+								</when><otherwise> 0 as m70,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('1f') > -1">					
+									(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+								</when><otherwise> 0 as w10,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('2f') > -1">					
+									(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+								</when><otherwise> 0 as w20,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('3f') > -1">					
+									(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+								</when><otherwise> 0 as w30,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('4f') > -1">					
+									(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+								</when><otherwise> 0 as w40,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('5f') > -1">					
+									(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+								</when><otherwise> 0 as w50,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('6f') > -1">					
+									(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+								</when><otherwise> 0 as w60,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('7f') > -1">					
+									coalesce(wman_flow_pop_cnt_70u,0) as w70,
+								</when><otherwise> 0 as w70,</otherwise>
+							</choose>
+						<![CDATA[	 
+						ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom, 
+						grid_id, h_emd_cd
+					from ( ${DYTBL} ) pop
+					WHERE 1=1 
+					]]>
+				       	<choose>
+			          		<when test="STD == 'day'">
+			        			<if test="SDAY != null and SDAY != ''">
+			                		and std_ymd <![CDATA[>=]]> #{SDAY} 
+			                	</if>
+			                	<if test="EDAY != null and EDAY != ''">
+				        			and std_ymd <![CDATA[<=]]> #{EDAY}
+				        		</if>
+			          		</when>
+			          		<otherwise>
+			          				<if test="SMONTH != null and SMONTH != ''">
+			                		and std_ym <![CDATA[>=]]> #{SMONTH} 
+			                	</if>
+			                	<if test="EMONTH != null and EMONTH != ''">
+				        			and std_ym <![CDATA[<=]]> #{EMONTH}
+				        		</if>
+				        	</otherwise>
+			          	</choose>  
+						<choose>
+			       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+			           		<otherwise>
+			           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			           		</otherwise>
+			           	</choose>	
+				     <![CDATA[
+				)part1 
+			),
+			anals_result AS(
+				select sum(tot) as tot, 0 as min, grid_id as sncd, wkt
+				from  			
+				(
+					    SELECT 
+					        spo_no_cd as sncd,
+					       	'POLYGON((' || array_to_string(  array_agg( 
+					        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+					        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+					    FROM(
+					    	 SELECT spo_no_cd, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+			    			FROM(
+					        	select spo_no_cd, 
+					        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+					        	from (
+			        				SELECT spo_no_cd, geom 
+			        				FROM hm_grid_100m_a 
+			    					WHERE ST_Intersects( 
+			            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+			   						)part
+						        WHERE 
+						        ]]>
+						        <choose>
+						        	<when test="ATYPE == 'area'">
+						        		spo_no_cd in (select spo_no_cd from view_dong_grid where adm_cd in (${DONGCD}))
+						        	</when>
+						        	<otherwise>
+						        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+						        	</otherwise>
+						        </choose>
+						        <![CDATA[
+			        	        order by spo_no_cd 
+					    	)PART1
+					    )PART2
+					    GROUP BY spo_no_cd
+				)result1
+				left join
+				(
+					select tot, grid_id 
+					from skt_hs_flow_pop_age_all	    		
+				) result2
+				on result1.sncd =  result2.grid_id
+				group by grid_id, wkt
+			)
+			select ${MAX} as tot, ${MIN} as min, '' as sncd, '' as wkt
+	        union all                    
+	        (select * from anals_result)			
+	     ]]>
+	</select>
+	
+	<!-- 기간별 분석_벌집 -->
+	<select id="selectGAFPop_beehive" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+		WITH skt_hs_flow_pop_age_all AS(
+				select (m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as tot, 
+				geom, hexagon_id, h_emd_cd
+				from ( 
+					select 
+						]]>
+							<choose>
+								<when test="AGE.indexOf('1m') > -1">					
+									(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+								</when><otherwise> 0 as m10,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('2m') > -1">					
+									(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+								</when><otherwise> 0 as m20,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('3m') > -1">					
+									(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+								</when><otherwise> 0 as m30,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('4m') > -1">					
+									(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+								</when><otherwise> 0 as m40,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('5m') > -1">					
+									(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+								</when><otherwise> 0 as m50,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('6m') > -1">					
+									(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+								</when><otherwise> 0 as m60,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('7m') > -1">					
+									coalesce(man_flow_pop_cnt_70u,0) as m70,
+								</when><otherwise> 0 as m70,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('1f') > -1">					
+									(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+								</when><otherwise> 0 as w10,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('2f') > -1">					
+									(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+								</when><otherwise> 0 as w20,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('3f') > -1">					
+									(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+								</when><otherwise> 0 as w30,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('4f') > -1">					
+									(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+								</when><otherwise> 0 as w40,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('5f') > -1">					
+									(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+								</when><otherwise> 0 as w50,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('6f') > -1">					
+									(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+								</when><otherwise> 0 as w60,</otherwise>
+							</choose>
+							<choose>
+								<when test="AGE.indexOf('7f') > -1">					
+									coalesce(wman_flow_pop_cnt_70u,0) as w70,
+								</when><otherwise> 0 as w70,</otherwise>
+							</choose>
+						<![CDATA[	 
+						ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom, 
+						hexagon_id, h_emd_cd
+					from ( ${DYTBL} ) pop
+					WHERE 1=1 
+					]]>
+				       	<choose>
+			          		<when test="STD == 'day'">
+			        			<if test="SDAY != null and SDAY != ''">
+			                		and std_ymd <![CDATA[>=]]> #{SDAY} 
+			                	</if>
+			                	<if test="EDAY != null and EDAY != ''">
+				        			and std_ymd <![CDATA[<=]]> #{EDAY}
+				        		</if>
+			          		</when>
+			          		<otherwise>
+			          				<if test="SMONTH != null and SMONTH != ''">
+			                		and std_ym <![CDATA[>=]]> #{SMONTH} 
+			                	</if>
+			                	<if test="EMONTH != null and EMONTH != ''">
+				        			and std_ym <![CDATA[<=]]> #{EMONTH}
+				        		</if>
+				        	</otherwise>
+			          	</choose>  
+						<choose>
+			       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+			           		<otherwise>
+			           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			           		</otherwise>
+			           	</choose>	
+				     <![CDATA[
+				)part1 
+			),
+			anals_result AS(
+				select sum(tot) as tot, 0 as min, hexagon_id as hid, wkt
+				from  			
+				(
+					    SELECT 
+				        unique_id as id,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT unique_id, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select unique_id, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT unique_id, geom 
+		        				FROM hm_hexagons_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		   						)part
+					        WHERE 
+					         ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		unique_id in (select unique_id from view_dong_beehive where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+				        	order by unique_id 
+				    	)PART1
+				    )PART2
+				    GROUP BY unique_id
+				)result1
+				left join
+				(
+					select tot, hexagon_id 
+					from skt_hs_flow_pop_age_all	    		
+				) result2
+				on result1.id =  result2.hexagon_id
+				group by hexagon_id, wkt
+			)
+			select ${MAX} as tot, ${MIN} as min, null as hid, '' as wkt
+	        union all                    
+	        (select * from anals_result)	
+	     ]]>
+	</select>
+	
+	<!-- 기간별 분석 범례정보-->
+	<select id="selectFPopGALgdInfo" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select max(tot) as max, min(tot) as min
+		from(
+			select 
+				sum((m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70)) as tot
+			from ( 
+					select 
+						]]>
+							<choose>
+								<when test="age.indexOf('1m') > -1">					
+									(coalesce(man_flow_pop_cnt_1014,0) + coalesce(man_flow_pop_cnt_1519,0)) as m10,
+								</when><otherwise> 0 as m10,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('2m') > -1">					
+									(coalesce(man_flow_pop_cnt_2024,0) + coalesce(man_flow_pop_cnt_2529,0)) as m20,
+								</when><otherwise> 0 as m20,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('3m') > -1">					
+									(coalesce(man_flow_pop_cnt_3034,0) + coalesce(man_flow_pop_cnt_3539,0)) as m30,
+								</when><otherwise> 0 as m30,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('4m') > -1">					
+									(coalesce(man_flow_pop_cnt_4044,0) + coalesce(man_flow_pop_cnt_4549,0)) as m40,
+								</when><otherwise> 0 as m40,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('5m') > -1">					
+									(coalesce(man_flow_pop_cnt_5054,0) + coalesce(man_flow_pop_cnt_5559,0)) as m50,
+								</when><otherwise> 0 as m50,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('6m') > -1">					
+									(coalesce(man_flow_pop_cnt_6064,0) + coalesce(man_flow_pop_cnt_6569,0)) as m60,
+								</when><otherwise> 0 as m60,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('7m') > -1">					
+									coalesce(man_flow_pop_cnt_70u,0) as m70,
+								</when><otherwise> 0 as m70,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('1f') > -1">					
+									(coalesce(wman_flow_pop_cnt_1014,0) + coalesce(wman_flow_pop_cnt_1519,0)) as w10,
+								</when><otherwise> 0 as w10,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('2f') > -1">					
+									(coalesce(wman_flow_pop_cnt_2024,0) + coalesce(wman_flow_pop_cnt_2529,0)) as w20,
+								</when><otherwise> 0 as w20,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('3f') > -1">					
+									(coalesce(wman_flow_pop_cnt_3034,0) + coalesce(wman_flow_pop_cnt_3539,0)) as w30,
+								</when><otherwise> 0 as w30,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('4f') > -1">					
+									(coalesce(wman_flow_pop_cnt_4044,0) + coalesce(wman_flow_pop_cnt_4549,0)) as w40,
+								</when><otherwise> 0 as w40,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('5f') > -1">					
+									(coalesce(wman_flow_pop_cnt_5054,0) + coalesce(wman_flow_pop_cnt_5559,0)) as w50,
+								</when><otherwise> 0 as w50,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('6f') > -1">					
+									(coalesce(wman_flow_pop_cnt_6064,0) + coalesce(wman_flow_pop_cnt_6569,0)) as w60,
+								</when><otherwise> 0 as w60,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('7f') > -1">					
+									coalesce(wman_flow_pop_cnt_70u,0) as w70,
+								</when><otherwise> 0 as w70,</otherwise>
+							</choose>
+						<![CDATA[
+						grid_id, hexagon_id
+					from ( ${dytbl} ) pop
+					WHERE 1=1 
+				]]>
+			       	<choose>
+		          		<when test="std == 'day'">
+		        			<if test="sday != null and sday != ''">
+		                		and std_ymd <![CDATA[>=]]> #{sday} 
+		                	</if>
+		                	<if test="eday != null and eday != ''">
+			        			and std_ymd <![CDATA[<=]]> #{eday}
+			        		</if>
+		          		</when>
+		          		<otherwise>
+		          				<if test="smonth != null and smonth != ''">
+		                		and std_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and std_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	</otherwise>
+		          	</choose>  
+					<choose>
+		       			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+		           		<otherwise>
+		           			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		           		</otherwise>
+		           	</choose>	
+			     <![CDATA[
+			)part1
+			]]>
+			<if test="vtype == 'grid'">
+        		group by grid_id
+        	</if>
+        	<if test="vtype == 'beehive'">        	
+        		group by hexagon_id
+        	</if>
+			<![CDATA[			
+		)result
+		]]>
+	</select>
+	
+	<!-- 시간대별 분석결과 -->
+	<select id="selectTimeFPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select case when item is null then '합계' else item end as item, 
+				  case when div is null then '전체' else div end as div,
+			      sum(t00) as t00, sum(t01) as t01, sum(t02) as t02, sum(t03) as t03, sum(t04) as t04,
+			      sum(t05) as t05, sum(t06) as t06, sum(t07) as t07, sum(t08) as t08, sum(t09) as t09,
+			      sum(t10) as t10, sum(t11) as t11, sum(t12) as t12, sum(t13) as t13, sum(t14) as t14,
+			      sum(t15) as t15, sum(t16) as t16, sum(t17) as t17, sum(t18) as t18, sum(t19) as t19,
+			      sum(t20) as t20, sum(t21) as t21, sum(t22) as t22, sum(t23) as t23,
+				  sum((t00+t01+t02+t03+t04+t05+t06+t07+t08+t09+t10+t11+t12+t13+t14+t15+t16+t17+t18+t19+t20+t21+t22+t23)) as tot
+			from(
+			
+				select 				       
+			]]>
+				<choose>
+					<when test="time.indexOf('00') > -1">sum(coalesce(tmst_00,0)) as t00,</when>
+					<otherwise> -999 as t00,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('01') > -1">sum(coalesce(tmst_01,0)) as t01,</when>
+					<otherwise> -999 as t01,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('02') > -1">sum(coalesce(tmst_02,0)) as t02,</when>
+					<otherwise> -999 as t02,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('03') > -1">sum(coalesce(tmst_03,0)) as t03,</when>
+					<otherwise> -999 as t03,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('04') > -1">sum(coalesce(tmst_04,0)) as t04,</when>
+					<otherwise> -999 as t04,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('05') > -1">sum(coalesce(tmst_05,0)) as t05,</when>
+					<otherwise> -999 as t05,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('06') > -1">sum(coalesce(tmst_06,0)) as t06,</when>
+					<otherwise> -999 as t06,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('07') > -1">sum(coalesce(tmst_07,0)) as t07,</when>
+					<otherwise> -999 as t07,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('08') > -1">sum(coalesce(tmst_08,0)) as t08,</when>
+					<otherwise> -999 as t08,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('09') > -1">sum(coalesce(tmst_09,0)) as t09,</when>
+					<otherwise> -999 as t09,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('10') > -1">sum(coalesce(tmst_10,0)) as t10,</when>
+					<otherwise> -999 as t10,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('11') > -1">sum(coalesce(tmst_11,0)) as t11,</when>
+					<otherwise> -999 as t11,</otherwise>					
+				</choose>
+				<choose>
+					<when test="time.indexOf('12') > -1">sum(coalesce(tmst_12,0)) as t12,</when>
+					<otherwise> -999 as t12,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('13') > -1">sum(coalesce(tmst_13,0)) as t13,</when>
+					<otherwise> -999 as t13,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('14') > -1">sum(coalesce(tmst_14,0)) as t14,</when>
+					<otherwise> -999 as t14,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('15') > -1">sum(coalesce(tmst_15,0)) as t15,</when>
+					<otherwise> -999 as t15,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('16') > -1">sum(coalesce(tmst_16,0)) as t16,</when>
+					<otherwise> -999 as t16,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('17') > -1">sum(coalesce(tmst_17,0)) as t17,</when>
+					<otherwise> -999 as t17,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('18') > -1">sum(coalesce(tmst_18,0)) as t18,</when>
+					<otherwise> -999 as t18,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('19') > -1">sum(coalesce(tmst_19,0)) as t19,</when>
+					<otherwise> -999 as t19,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('20') > -1">sum(coalesce(tmst_20,0)) as t20,</when>
+					<otherwise> -999 as t20,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('21') > -1">sum(coalesce(tmst_21,0)) as t21,</when>
+					<otherwise> -999 as t21,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('22') > -1">sum(coalesce(tmst_22,0)) as t22,</when>
+					<otherwise> -999 as t22,</otherwise>
+				</choose>
+				<choose>
+					<when test="time.indexOf('23') > -1">sum(coalesce(tmst_23,0)) as t23,</when>
+					<otherwise> -999 as t23,</otherwise>
+				</choose>
+			<![CDATA[
+					  h_emd_cd as item, h_emd_nm as div
+				from ( ${dytbl}	) pop
+				where 1=1
+			]]>					
+				<choose>
+           			<when test="std == 'day'">
+	        			<if test="sday != null and sday != ''">
+	                		and std_ymd <![CDATA[>=]]> #{sday} 
+	                	</if>
+	                	<if test="eday != null and eday != ''">
+		        			and std_ymd <![CDATA[<=]]> #{eday}
+		        		</if>
+           			</when>
+           			<otherwise>
+           				<if test="smonth != null and smonth != ''">
+	                		and std_ym <![CDATA[>=]]> #{smonth} 
+	                	</if>
+	                	<if test="emonth != null and emonth != ''">
+		        			and std_ym <![CDATA[<=]]> #{emonth}
+		        		</if>
+		        	</otherwise>
+           		</choose>  
+				<choose>
+        			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+            		<otherwise>
+            			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+            		</otherwise>
+            	</choose>				
+			 <![CDATA[
+			 	group by h_emd_cd, h_emd_nm
+			)part1
+			group by grouping sets((item, div), ()) 
+			order by item		
+		]]>
+	</select>
+		
+	<!-- 시간대별 분석_밀도 -->
+	<select id="selectTimeFPop_heat" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+		select (t00+t01+t02+t03+t04+t05+t06+t07+t08+t09+t10+t11+t12+t13+t14+t15+t16+t17+t18+t19+t20+t21+t22+t23) as tot, 
+			   ( (st_x(geom) - ${MINX}) / ${RESOLUTION}) as stx, ( ( ${MAXY} - st_y(geom)) / ${RESOLUTION}) as sty
+		from
+		(
+			select 
+			]]>
+				<choose>
+					<when test="TIME.indexOf('00') > -1">coalesce(tmst_00,0) as t00,</when>
+					<otherwise> 0 as t00,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('01') > -1">coalesce(tmst_01,0) as t01,</when>
+					<otherwise> 0 as t01,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('02') > -1">coalesce(tmst_02,0) as t02,</when>
+					<otherwise> 0 as t02,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('03') > -1">coalesce(tmst_03,0) as t03,</when>
+					<otherwise> 0 as t03,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('04') > -1">coalesce(tmst_04,0) as t04,</when>
+					<otherwise> 0 as t04,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('05') > -1">coalesce(tmst_05,0) as t05,</when>
+					<otherwise> 0 as t05,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('06') > -1">coalesce(tmst_06,0) as t06,</when>
+					<otherwise> 0 as t06,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('07') > -1">coalesce(tmst_07,0) as t07,</when>
+					<otherwise> 0 as t07,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('08') > -1">coalesce(tmst_08,0) as t08,</when>
+					<otherwise> 0 as t08,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('09') > -1">coalesce(tmst_09,0) as t09,</when>
+					<otherwise> 0 as t09,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('10') > -1">coalesce(tmst_10,0) as t10,</when>
+					<otherwise> 0 as t10,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('11') > -1">coalesce(tmst_11,0) as t11,</when>
+					<otherwise> 0 as t11,</otherwise>					
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('12') > -1">coalesce(tmst_12,0) as t12,</when>
+					<otherwise> 0 as t12,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('13') > -1">coalesce(tmst_13,0) as t13,</when>
+					<otherwise> 0 as t13,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('14') > -1">coalesce(tmst_14,0) as t14,</when>
+					<otherwise> 0 as t14,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('15') > -1">coalesce(tmst_15,0) as t15,</when>
+					<otherwise> 0 as t15,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('16') > -1">coalesce(tmst_16,0) as t16,</when>
+					<otherwise> 0 as t16,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('17') > -1">coalesce(tmst_17,0) as t17,</when>
+					<otherwise> 0 as t17,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('18') > -1">coalesce(tmst_18,0) as t18,</when>
+					<otherwise> 0 as t18,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('19') > -1">coalesce(tmst_19,0) as t19,</when>
+					<otherwise> 0 as t19,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('20') > -1">coalesce(tmst_20,0) as t20,</when>
+					<otherwise> 0 as t20,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('21') > -1">coalesce(tmst_21,0) as t21,</when>
+					<otherwise> 0 as t21,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('22') > -1">coalesce(tmst_22,0) as t22,</when>
+					<otherwise> 0 as t22,</otherwise>
+				</choose>
+				<choose>
+					<when test="TIME.indexOf('23') > -1">coalesce(tmst_23,0) as t23,</when>
+					<otherwise> 0 as t23,</otherwise>
+				</choose>
+			<![CDATA[			 
+				ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom 
+			from ( ${DYTBL} ) pop				
+	   		WHERE 1=1
+	   		]]>
+	       	<choose>
+          		<when test="STD == 'day'">
+        			<if test="SDAY != null and SDAY != ''">
+                		and std_ymd <![CDATA[>=]]> #{SDAY} 
+                	</if>
+                	<if test="EDAY != null and EDAY != ''">
+	        			and std_ymd <![CDATA[<=]]> #{EDAY}
+	        		</if>
+          		</when>
+          		<otherwise>
+          				<if test="SMONTH != null and SMONTH != ''">
+                		and std_ym <![CDATA[>=]]> #{SMONTH} 
+                	</if>
+                	<if test="EMONTH != null and EMONTH != ''">
+	        			and std_ym <![CDATA[<=]]> #{EMONTH}
+	        		</if>
+	        	</otherwise>
+          	</choose>  
+			<choose>
+       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+           		<otherwise>
+           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+           		</otherwise>
+           	</choose>	
+	     <![CDATA[
+	     )part1
+	     where 
+	     	t00 > 0 or t01 > 0 or t02 > 0 or t03 > 0 or t04 > 0 or t05 > 0 or t06 > 0 or t07 > 0 or t08 > 0 or
+	     	t09 > 0 or t10 > 0 or t11 > 0 or t12 > 0 or t13 > 0 or t14 > 0 or t15 > 0 or t16 > 0 or t17 > 0 or
+	     	t18 > 0 or t19 > 0 or t20 > 0 or t21 > 0 or t22 > 0 or t23 > 0
+	     ]]>
+	</select>	
+	
+	<!-- 시간대별 분석_그리드 -->
+	<select id="selectTimeFPop_grid" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+			WITH skt_hs_flow_pop_time_all AS(
+				select (t00+t01+t02+t03+t04+t05+t06+t07+t08+t09+t10+t11+t12+t13+t14+t15+t16+t17+t18+t19+t20+t21+t22+t23) as tot, 
+				geom, grid_id, h_emd_cd
+				from ( 
+					select 
+						]]>
+						<choose>
+							<when test="TIME.indexOf('00') > -1">coalesce(tmst_00,0) as t00,</when>
+							<otherwise> 0 as t00,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('01') > -1">coalesce(tmst_01,0) as t01,</when>
+							<otherwise> 0 as t01,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('02') > -1">coalesce(tmst_02,0) as t02,</when>
+							<otherwise> 0 as t02,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('03') > -1">coalesce(tmst_03,0) as t03,</when>
+							<otherwise> 0 as t03,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('04') > -1">coalesce(tmst_04,0) as t04,</when>
+							<otherwise> 0 as t04,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('05') > -1">coalesce(tmst_05,0) as t05,</when>
+							<otherwise> 0 as t05,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('06') > -1">coalesce(tmst_06,0) as t06,</when>
+							<otherwise> 0 as t06,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('07') > -1">coalesce(tmst_07,0) as t07,</when>
+							<otherwise> 0 as t07,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('08') > -1">coalesce(tmst_08,0) as t08,</when>
+							<otherwise> 0 as t08,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('09') > -1">coalesce(tmst_09,0) as t09,</when>
+							<otherwise> 0 as t09,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('10') > -1">coalesce(tmst_10,0) as t10,</when>
+							<otherwise> 0 as t10,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('11') > -1">coalesce(tmst_11,0) as t11,</when>
+							<otherwise> 0 as t11,</otherwise>					
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('12') > -1">coalesce(tmst_12,0) as t12,</when>
+							<otherwise> 0 as t12,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('13') > -1">coalesce(tmst_13,0) as t13,</when>
+							<otherwise> 0 as t13,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('14') > -1">coalesce(tmst_14,0) as t14,</when>
+							<otherwise> 0 as t14,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('15') > -1">coalesce(tmst_15,0) as t15,</when>
+							<otherwise> 0 as t15,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('16') > -1">coalesce(tmst_16,0) as t16,</when>
+							<otherwise> 0 as t16,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('17') > -1">coalesce(tmst_17,0) as t17,</when>
+							<otherwise> 0 as t17,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('18') > -1">coalesce(tmst_18,0) as t18,</when>
+							<otherwise> 0 as t18,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('19') > -1">coalesce(tmst_19,0) as t19,</when>
+							<otherwise> 0 as t19,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('20') > -1">coalesce(tmst_20,0) as t20,</when>
+							<otherwise> 0 as t20,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('21') > -1">coalesce(tmst_21,0) as t21,</when>
+							<otherwise> 0 as t21,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('22') > -1">coalesce(tmst_22,0) as t22,</when>
+							<otherwise> 0 as t22,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('23') > -1">coalesce(tmst_23,0) as t23,</when>
+							<otherwise> 0 as t23,</otherwise>
+						</choose>
+					<![CDATA[	 
+						ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom, 
+						grid_id, h_emd_cd
+					from ( ${DYTBL} ) pop 
+					WHERE 1=1 
+					]]>
+				       	<choose>
+			          		<when test="STD == 'day'">
+			        			<if test="SDAY != null and SDAY != ''">
+			                		and std_ymd <![CDATA[>=]]> #{SDAY} 
+			                	</if>
+			                	<if test="EDAY != null and EDAY != ''">
+				        			and std_ymd <![CDATA[<=]]> #{EDAY}
+				        		</if>
+			          		</when>
+			          		<otherwise>
+			          				<if test="SMONTH != null and SMONTH != ''">
+			                		and std_ym <![CDATA[>=]]> #{SMONTH} 
+			                	</if>
+			                	<if test="EMONTH != null and EMONTH != ''">
+				        			and std_ym <![CDATA[<=]]> #{EMONTH}
+				        		</if>
+				        	</otherwise>
+			          	</choose>  
+						<choose>
+			       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+			           		<otherwise>
+			           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			           		</otherwise>
+			           	</choose>	
+				     <![CDATA[
+				)part1 
+			),
+			anals_result AS(
+				select sum(tot) as tot, 0 as min, grid_id as sncd, wkt
+				from  			
+				(
+					    SELECT 
+					        spo_no_cd as sncd,
+					       	'POLYGON((' || array_to_string(  array_agg( 
+					        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+					        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+					    FROM(
+					    	 SELECT spo_no_cd, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+			    			FROM(
+					        	select spo_no_cd, 
+					        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+					        	from (
+			        				SELECT spo_no_cd, geom 
+			        				FROM hm_grid_100m_a 
+			    					WHERE ST_Intersects( 
+			            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+			   						)part
+						        WHERE 
+						        ]]>
+						        <choose>
+						        	<when test="ATYPE == 'area'">
+						        		spo_no_cd in (select spo_no_cd from view_dong_grid where adm_cd in (${DONGCD}))
+						        	</when>
+						        	<otherwise>
+						        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+						        	</otherwise>
+						        </choose>
+						        <![CDATA[
+			        	        order by spo_no_cd 
+					    	)PART1
+					    )PART2
+					    GROUP BY spo_no_cd
+				)result1
+				left join
+				(
+					select tot, grid_id 
+					from skt_hs_flow_pop_time_all	    		
+				) result2
+				on result1.sncd =  result2.grid_id
+				group by grid_id, wkt
+			)
+			select ${MAX} as tot, ${MIN} as min, '' as sncd, '' as wkt
+	        union all                    
+	        (select * from anals_result)		
+	     ]]>
+	</select>
+	
+	<!-- 시간대별 분석_벌집 -->
+	<select id="selectTimeFPop_beehive" parameterType="popAnalsGisVO" resultType="egovMap">
+		<![CDATA[		
+			WITH skt_hs_flow_pop_time_all AS(
+				select (t00+t01+t02+t03+t04+t05+t06+t07+t08+t09+t10+t11+t12+t13+t14+t15+t16+t17+t18+t19+t20+t21+t22+t23) as tot, 
+				geom, hexagon_id, h_emd_cd
+				from ( 
+					select 
+						]]>
+						<choose>
+							<when test="TIME.indexOf('00') > -1">coalesce(tmst_00,0) as t00,</when>
+							<otherwise> 0 as t00,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('01') > -1">coalesce(tmst_01,0) as t01,</when>
+							<otherwise> 0 as t01,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('02') > -1">coalesce(tmst_02,0) as t02,</when>
+							<otherwise> 0 as t02,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('03') > -1">coalesce(tmst_03,0) as t03,</when>
+							<otherwise> 0 as t03,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('04') > -1">coalesce(tmst_04,0) as t04,</when>
+							<otherwise> 0 as t04,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('05') > -1">coalesce(tmst_05,0) as t05,</when>
+							<otherwise> 0 as t05,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('06') > -1">coalesce(tmst_06,0) as t06,</when>
+							<otherwise> 0 as t06,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('07') > -1">coalesce(tmst_07,0) as t07,</when>
+							<otherwise> 0 as t07,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('08') > -1">coalesce(tmst_08,0) as t08,</when>
+							<otherwise> 0 as t08,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('09') > -1">coalesce(tmst_09,0) as t09,</when>
+							<otherwise> 0 as t09,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('10') > -1">coalesce(tmst_10,0) as t10,</when>
+							<otherwise> 0 as t10,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('11') > -1">coalesce(tmst_11,0) as t11,</when>
+							<otherwise> 0 as t11,</otherwise>					
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('12') > -1">coalesce(tmst_12,0) as t12,</when>
+							<otherwise> 0 as t12,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('13') > -1">coalesce(tmst_13,0) as t13,</when>
+							<otherwise> 0 as t13,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('14') > -1">coalesce(tmst_14,0) as t14,</when>
+							<otherwise> 0 as t14,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('15') > -1">coalesce(tmst_15,0) as t15,</when>
+							<otherwise> 0 as t15,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('16') > -1">coalesce(tmst_16,0) as t16,</when>
+							<otherwise> 0 as t16,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('17') > -1">coalesce(tmst_17,0) as t17,</when>
+							<otherwise> 0 as t17,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('18') > -1">coalesce(tmst_18,0) as t18,</when>
+							<otherwise> 0 as t18,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('19') > -1">coalesce(tmst_19,0) as t19,</when>
+							<otherwise> 0 as t19,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('20') > -1">coalesce(tmst_20,0) as t20,</when>
+							<otherwise> 0 as t20,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('21') > -1">coalesce(tmst_21,0) as t21,</when>
+							<otherwise> 0 as t21,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('22') > -1">coalesce(tmst_22,0) as t22,</when>
+							<otherwise> 0 as t22,</otherwise>
+						</choose>
+						<choose>
+							<when test="TIME.indexOf('23') > -1">coalesce(tmst_23,0) as t23,</when>
+							<otherwise> 0 as t23,</otherwise>
+						</choose>
+					<![CDATA[	
+						ST_Transform(geom, replace(${COORD}::text,'900913','3857')::int) as geom, 
+						hexagon_id, h_emd_cd
+					from ( ${DYTBL} ) pop 
+					WHERE 1=1 
+					]]>
+				       	<choose>
+			          		<when test="STD == 'day'">
+			        			<if test="SDAY != null and SDAY != ''">
+			                		and std_ymd <![CDATA[>=]]> #{SDAY} 
+			                	</if>
+			                	<if test="EDAY != null and EDAY != ''">
+				        			and std_ymd <![CDATA[<=]]> #{EDAY}
+				        		</if>
+			          		</when>
+			          		<otherwise>
+			          				<if test="SMONTH != null and SMONTH != ''">
+			                		and std_ym <![CDATA[>=]]> #{SMONTH} 
+			                	</if>
+			                	<if test="EMONTH != null and EMONTH != ''">
+				        			and std_ym <![CDATA[<=]]> #{EMONTH}
+				        		</if>
+				        	</otherwise>
+			          	</choose>  
+						<choose>
+			       			<when test="ATYPE == 'area'">and h_emd_cd in (${DONGCD})</when>
+			           		<otherwise>
+			           			and ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+			           		</otherwise>
+			           	</choose>	
+				     <![CDATA[
+				)part1 
+			),
+			anals_result AS(
+				select sum(tot) as tot, 0 as min, hexagon_id as hid, wkt
+				from  			
+				(
+					    SELECT 
+				        unique_id as id,
+				       	'POLYGON((' || array_to_string(  array_agg( 
+				        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+				        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+				    FROM(
+				    	 SELECT unique_id, ST_Transform(poly, replace(${COORD}::text,'900913','3857')::int) as poly
+		    			FROM(
+				        	select unique_id, 
+				        		(ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom  as POLY
+				        	from (
+		        				SELECT unique_id, geom 
+		        				FROM hm_hexagons_100m_a 
+		    					WHERE ST_Intersects( 
+		            				ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom) = true 
+		   						)part
+					        WHERE 
+					         ]]>
+					        <choose>
+					        	<when test="ATYPE == 'area'">
+					        		unique_id in (select unique_id from view_dong_beehive where adm_cd in (${DONGCD}))
+					        	</when>
+					        	<otherwise>
+					        		ST_Intersects(ST_GeomFromText('${AREA}', 4326), geom) = true
+					        	</otherwise>
+					        </choose>
+					        <![CDATA[
+				        	order by unique_id 
+				    	)PART1
+				    )PART2
+				    GROUP BY unique_id
+				)result1
+				left join
+				(
+					select tot, hexagon_id 
+					from skt_hs_flow_pop_time_all	    		
+				) result2
+				on result1.id =  result2.hexagon_id
+				group by hexagon_id, wkt
+			)
+			select ${MAX} as tot, ${MIN} as min, null as hid, '' as wkt
+	        union all                    
+	        (select * from anals_result)	
+	     ]]>
+	</select>
+	
+	<!-- 기간별 분석 범례정보-->
+	<select id="selectFPopTimeLgdInfo" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select max(tot) as max, min(tot) as min
+		from(
+			select 
+				sum((t00+t01+t02+t03+t04+t05+t06+t07+t08+t09+t10+t11+t12+t13+t14+t15+t16+t17+t18+t19+t20+t21+t22+t23)) as tot
+			from ( 
+					select 
+						]]>
+							<choose>
+								<when test="time.indexOf('00') > -1">coalesce(tmst_00,0) as t00,</when>
+								<otherwise> 0 as t00,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('01') > -1">coalesce(tmst_01,0) as t01,</when>
+								<otherwise> 0 as t01,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('02') > -1">coalesce(tmst_02,0) as t02,</when>
+								<otherwise> 0 as t02,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('03') > -1">coalesce(tmst_03,0) as t03,</when>
+								<otherwise> 0 as t03,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('04') > -1">coalesce(tmst_04,0) as t04,</when>
+								<otherwise> 0 as t04,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('05') > -1">coalesce(tmst_05,0) as t05,</when>
+								<otherwise> 0 as t05,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('06') > -1">coalesce(tmst_06,0) as t06,</when>
+								<otherwise> 0 as t06,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('07') > -1">coalesce(tmst_07,0) as t07,</when>
+								<otherwise> 0 as t07,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('08') > -1">coalesce(tmst_08,0) as t08,</when>
+								<otherwise> 0 as t08,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('09') > -1">coalesce(tmst_09,0) as t09,</when>
+								<otherwise> 0 as t09,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('10') > -1">coalesce(tmst_10,0) as t10,</when>
+								<otherwise> 0 as t10,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('11') > -1">coalesce(tmst_11,0) as t11,</when>
+								<otherwise> 0 as t11,</otherwise>					
+							</choose>
+							<choose>
+								<when test="time.indexOf('12') > -1">coalesce(tmst_12,0) as t12,</when>
+								<otherwise> 0 as t12,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('13') > -1">coalesce(tmst_13,0) as t13,</when>
+								<otherwise> 0 as t13,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('14') > -1">coalesce(tmst_14,0) as t14,</when>
+								<otherwise> 0 as t14,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('15') > -1">coalesce(tmst_15,0) as t15,</when>
+								<otherwise> 0 as t15,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('16') > -1">coalesce(tmst_16,0) as t16,</when>
+								<otherwise> 0 as t16,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('17') > -1">coalesce(tmst_17,0) as t17,</when>
+								<otherwise> 0 as t17,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('18') > -1">coalesce(tmst_18,0) as t18,</when>
+								<otherwise> 0 as t18,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('19') > -1">coalesce(tmst_19,0) as t19,</when>
+								<otherwise> 0 as t19,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('20') > -1">coalesce(tmst_20,0) as t20,</when>
+								<otherwise> 0 as t20,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('21') > -1">coalesce(tmst_21,0) as t21,</when>
+								<otherwise> 0 as t21,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('22') > -1">coalesce(tmst_22,0) as t22,</when>
+								<otherwise> 0 as t22,</otherwise>
+							</choose>
+							<choose>
+								<when test="time.indexOf('23') > -1">coalesce(tmst_23,0) as t23,</when>
+								<otherwise> 0 as t23,</otherwise>
+							</choose>
+						<![CDATA[
+						grid_id, hexagon_id
+					from ( ${dytbl} ) pop 
+					WHERE 1=1 
+				]]>
+			       	<choose>
+		          		<when test="std == 'day'">
+		        			<if test="sday != null and sday != ''">
+		                		and std_ymd <![CDATA[>=]]> #{sday} 
+		                	</if>
+		                	<if test="eday != null and eday != ''">
+			        			and std_ymd <![CDATA[<=]]> #{eday}
+			        		</if>
+		          		</when>
+		          		<otherwise>
+		          				<if test="smonth != null and smonth != ''">
+		                		and std_ym <![CDATA[>=]]> #{smonth} 
+		                	</if>
+		                	<if test="emonth != null and emonth != ''">
+			        			and std_ym <![CDATA[<=]]> #{emonth}
+			        		</if>
+			        	</otherwise>
+		          	</choose>  
+					<choose>
+		       			<when test="atype == 'area'">and h_emd_cd in (${dongcd})</when>
+		           		<otherwise>
+		           			and ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true
+		           		</otherwise>
+		           	</choose>	
+			     <![CDATA[
+			)part1
+			]]>
+			<if test="vtype == 'grid'">
+        		group by grid_id
+        	</if>
+        	<if test="vtype == 'beehive'">        	
+        		group by hexagon_id
+        	</if>
+			<![CDATA[			
+		)result
+		]]>
+	</select>
+</mapper>

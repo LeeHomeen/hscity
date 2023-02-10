@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+    <settings>
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <setting name="jdbcTypeForNull" value="NULL"/>
+    </settings>
+
+    
+    <typeAliases> 
+    	<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+	    
+	    <!-- 공통 VO -->
+	    <typeAlias alias="commVO" 	type="kr.co.socsoft.gis.comm.vo.CommVO"/>
+	    
+	    <!-- GIS관련 VO -->
+	    <typeAlias alias="spatialVO" 	type="kr.co.socsoft.gis.spatial.vo.SpatialVO"/>
+	    
+	    <!-- 인구분석 관련 VO -->
+	    <typeAlias alias="popAnalsVO" 	type="kr.co.socsoft.gis.pop.vo.PopAnalsVO"/>
+	    
+	    <!-- 유저권한 관련 VO -->
+	    <typeAlias alias="userPermitVO" 	type="kr.co.socsoft.permission.vo.UserPermitVO"/>
+	    
+	    <!-- 메뉴관리 관련 VO -->
+	    <typeAlias alias="CategoryVo" 	type="kr.co.socsoft.menu.vo.CategoryVo"/>
+	    
+	    <!-- 관리자 메뉴관련 VO -->
+	   	<typeAlias alias="bizMenuMstVO" 	type="kr.co.socsoft.common.vo.BizMenuMstVO"/>
+	   	
+	   	<!-- 관리자 메뉴 매핑 관련 VO -->
+	   	<typeAlias alias="menuUserMapVO" 	type="kr.co.socsoft.common.vo.MenuUserMapVO"/>
+	   	
+	   	<!-- 경기데이터 드림 관련 VO -->
+	   	<typeAlias alias="dataVO" 	type="kr.co.socsoft.common.vo.DataVO"/>
+	   	<typeAlias alias="dataLinkVO" 	type="kr.co.socsoft.common.vo.DataLinkVO"/>
+		
+		<!-- 관리자 메뉴 권한 관련 VO -->    
+	   	<typeAlias alias="menuPermitVO" 	type="kr.co.socsoft.common.vo.MenuPermitVO"/>
+	   	
+		<!-- 사용자 동기화 로그 VO -->
+	   	<typeAlias alias="logSyncUserVO" 	type="kr.co.socsoft.permission.vo.LogSyncUserVO"/>
+	   	    
+	   	<!-- 공통코드 관련 VO -->
+	   	<typeAlias alias="codeVO" 	type="kr.co.socsoft.common.vo.CodeVO"/>
+
+		<!-- 게시판 VO -->
+	   	<typeAlias alias="boardVO" 	type="kr.co.socsoft.manage.board.vo.BoardVO"/>
+
+		<!-- 대용량 데이터 업로드 관련 -->
+		<typeAlias alias="dataUploadScheduleVO" 	type="kr.co.socsoft.data.vo.DataUploadScheduleVO"/>
+		<typeAlias alias="dbUpldLogVO" 	type="kr.co.socsoft.data.vo.DbUpldLogVO"/>
+
+	   	<!-- 메인화면 VO -->
+	   	<typeAlias alias="screenVO" 	type="kr.co.socsoft.screen.vo.ScreenVO"/>
+		
+		<!-- 매출분석 관련 VO -->
+    	<typeAlias alias="salesAnalsVO" type="kr.co.socsoft.gis.sales.vo.SalesAnalsVO"/>
+    	
+    	<!-- 인구/매출분석 관련 gis VO -->
+    	<typeAlias alias="popAnalsGisVO" 	type="kr.co.socsoft.gis.pop.vo.PopAnalsGisVO"/>
+    	
+    	<!-- 엑셀다운로드 로그 VO -->
+    	<typeAlias alias="logVO" 	type="kr.co.socsoft.gis.comm.vo.LogVO"/>
+ 
+		<!-- File VO -->
+		<typeAlias alias="bbsAttFileMngVO" 	type="kr.co.socsoft.manage.file.vo.BbsAttFileMngVO"/>
+		<typeAlias alias="bbsAttFileVO" 	type="kr.co.socsoft.manage.file.vo.BbsAttFileVO"/>
+		
+		<!-- 교통분석 관련 VO -->
+    	<typeAlias alias="trafficAnalsVO" type="kr.co.socsoft.gis.traffic.vo.TrafficAnalsVO"/>
+    	<typeAlias alias="trafficAnalsGisVO" type="kr.co.socsoft.gis.traffic.vo.TrafficAnalsGisVO"/>
+    	
+    	<typeAlias alias="MenuCategoryVO" type="kr.co.socsoft.internal.main.vo.MenuCategoryVO"/>
+
+        <typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+
+        <!-- 공통 VO -->
+        <typeAlias alias="commVO" type="kr.co.socsoft.gis.comm.vo.CommVO"/>
+
+        <!-- GIS관련 VO -->
+        <typeAlias alias="spatialVO" type="kr.co.socsoft.gis.spatial.vo.SpatialVO"/>
+
+        <!-- 인구분석 관련 VO -->
+        <typeAlias alias="popAnalsVO" type="kr.co.socsoft.gis.pop.vo.PopAnalsVO"/>
+
+        <!-- 유저권한 관련 VO -->
+        <typeAlias alias="userPermitVO" type="kr.co.socsoft.permission.vo.UserPermitVO"/>
+
+        <!-- 메뉴관리 관련 VO -->
+        <typeAlias alias="CategoryVo" type="kr.co.socsoft.menu.vo.CategoryVo"/>
+
+        <!-- 관리자 메뉴관련 VO -->
+        <typeAlias alias="bizMenuMstVO" type="kr.co.socsoft.common.vo.BizMenuMstVO"/>
+
+        <!-- 관리자 메뉴 매핑 관련 VO -->
+        <typeAlias alias="menuUserMapVO" type="kr.co.socsoft.common.vo.MenuUserMapVO"/>
+
+        <!-- 경기데이터 드림 관련 VO -->
+        <typeAlias alias="dataVO" type="kr.co.socsoft.common.vo.DataVO"/>
+        <typeAlias alias="dataLinkVO" type="kr.co.socsoft.common.vo.DataLinkVO"/>
+
+        <!-- 관리자 메뉴 권한 관련 VO -->
+        <typeAlias alias="menuPermitVO" type="kr.co.socsoft.common.vo.MenuPermitVO"/>
+
+        <!-- 사용자 동기화 로그 VO -->
+        <typeAlias alias="logSyncUserVO" type="kr.co.socsoft.permission.vo.LogSyncUserVO"/>
+
+        <!-- 공통코드 관련 VO -->
+        <typeAlias alias="codeVO" type="kr.co.socsoft.common.vo.CodeVO"/>
+
+        <!-- 게시판 VO -->
+        <typeAlias alias="boardVO" type="kr.co.socsoft.manage.board.vo.BoardVO"/>
+
+        <!-- 대용량 데이터 업로드 관련 -->
+        <typeAlias alias="dataUploadScheduleVO" type="kr.co.socsoft.data.vo.DataUploadScheduleVO"/>
+        <typeAlias alias="dbUpldLogVO" type="kr.co.socsoft.data.vo.DbUpldLogVO"/>
+        <typeAlias alias="dataTableInfoVO" type="kr.co.socsoft.data.vo.DataTableInfoVO"/>
+
+        <!-- 메인화면 VO -->
+        <typeAlias alias="screenVO" type="kr.co.socsoft.screen.vo.ScreenVO"/>
+
+        <!-- 매출분석 관련 VO -->
+        <typeAlias alias="salesAnalsVO" type="kr.co.socsoft.gis.sales.vo.SalesAnalsVO"/>
+
+        <!-- 인구/매출분석 관련 gis VO -->
+        <typeAlias alias="popAnalsGisVO" type="kr.co.socsoft.gis.pop.vo.PopAnalsGisVO"/>
+
+        <!-- 엑셀다운로드 로그 VO -->
+        <typeAlias alias="logVO" type="kr.co.socsoft.gis.comm.vo.LogVO"/>
+
+        <!-- File VO -->
+        <typeAlias alias="bbsAttFileMngVO" type="kr.co.socsoft.manage.file.vo.BbsAttFileMngVO"/>
+        <typeAlias alias="bbsAttFileVO" type="kr.co.socsoft.manage.file.vo.BbsAttFileVO"/>
+
+        <!-- 교통분석 관련 VO -->
+        <typeAlias alias="trafficAnalsVO" type="kr.co.socsoft.gis.traffic.vo.TrafficAnalsVO"/>
+        <typeAlias alias="trafficAnalsGisVO" type="kr.co.socsoft.gis.traffic.vo.TrafficAnalsGisVO"/>
+
+        <typeAlias alias="MenuCategoryVO" type="kr.co.socsoft.internal.main.vo.MenuCategoryVO"/>
+
+       <!-- 관리자 통계현황 관련 VO -->
+        <typeAlias alias="accessVO" type="kr.co.socsoft.stats.vo.AccessVO"/>
+
+
+        <!-- 로그인 관련 VO -->
+        <typeAlias alias="loginVO" type="kr.co.socsoft.common.vo.LoginVO"/>
+
+        <!--  업로드 로그 VO -->
+		<typeAlias alias="dataUpldLogVO" type="kr.co.socsoft.common.vo.DataUpldLogVO"/>
+		
+		<!-- 배너 관련 VO -->
+		<typeAlias alias="bannerVO" type="kr.co.socsoft.screen.vo.BannerVO" />
+		
+    </typeAliases>
+    
+</configuration>

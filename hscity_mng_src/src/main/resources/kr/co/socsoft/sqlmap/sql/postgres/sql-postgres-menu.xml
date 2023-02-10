@@ -1,0 +1,693 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.menu.service.CategoryDao">
+
+	<select id="getPubCategoryData" parameterType="CategoryVo" resultType="egovMap">
+		<![CDATA[
+			select a.pub_category_cd
+			     , a.pub_category_nm
+			     , a.upper_pub_category_cd
+			     , a.sort_no
+			     , a.description
+			     , a.rmk
+			     , a.use_yn
+			     , a.level
+			     , a.cnt as include_category_cnt
+     			 , case when level = 1 then (
+			                                 (select count(*) from hs_pub_menu_mst where use_yn = 'y' and pub_category_cd = a.pub_category_cd)
+			                                  +
+			                                 (select count(*) from hs_pub_menu_mst where use_yn = 'y' and pub_category_cd in (select pub_category_cd from hs_pub_menu_category where upper_pub_category_cd = a.pub_category_cd))
+			                                  +
+			                                 (select count(*) from hs_pub_menu_mst where use_yn = 'y' and pub_category_cd in (select pub_category_cd from hs_pub_menu_category where upper_pub_category_cd in (select pub_category_cd from hs_pub_menu_category where upper_pub_category_cd = a.pub_category_cd)))
+			                                )
+            			when level = 2 then (
+						         			 (select count(*) from hs_pub_menu_mst where use_yn = 'y' and pub_category_cd = a.pub_category_cd)
+			                                  +
+			                                 (select count(*) from hs_pub_menu_mst where use_yn = 'y' and pub_category_cd in (select pub_category_cd from hs_pub_menu_category where upper_pub_category_cd = a.pub_category_cd))
+			                                )
+			            when level = 3 then (select count(*) from hs_pub_menu_mst where use_yn = 'y' and pub_category_cd = a.pub_category_cd)                    
+			            else 0
+			       end include_menu_cnt
+			from   v_hs_pub_category a 
+			where  1 = 1
+			--and    a.pub_category_cd != 'EX00000000' 
+			and    a.use_yn = 'y'
+			--order  by a.path, a.sort_no;
+			order  by a.sort_no, a.path;
+		]]>
+	</select>
+	
+	<select id="getBizCategoryData" parameterType="CategoryVo" resultType="egovMap">
+		<![CDATA[
+			select a.biz_category_cd
+			     , a.biz_category_nm
+			     , a.upper_biz_category_cd
+			     , a.sort_no
+			     , a.description
+			     , a.rmk
+			     , a.use_yn
+			     , a.level
+			     , case when level = 1 then (
+			                                 (select count(*) from hs_biz_menu_mst where use_yn = 'y' and biz_category_cd = a.biz_category_cd)
+			                                  +
+			                                 (select count(*) from hs_biz_menu_mst where use_yn = 'y' and biz_category_cd in (select biz_category_cd from hs_biz_menu_category where upper_biz_category_cd = a.biz_category_cd))
+			                                  +
+			                                 (select count(*) from hs_biz_menu_mst where use_yn = 'y' and biz_category_cd in (select biz_category_cd from hs_biz_menu_category where upper_biz_category_cd in (select biz_category_cd from hs_biz_menu_category where upper_biz_category_cd = a.biz_category_cd)))
+			                                )
+            			when level = 2 then (
+						         			 (select count(*) from hs_biz_menu_mst where use_yn = 'y' and biz_category_cd = a.biz_category_cd)
+			                                  +
+			                                 (select count(*) from hs_biz_menu_mst where use_yn = 'y' and biz_category_cd in (select biz_category_cd from hs_biz_menu_category where upper_biz_category_cd = a.biz_category_cd))
+			                                )
+			            when level = 3 then (select count(*) from hs_biz_menu_mst where use_yn = 'y' and biz_category_cd = a.biz_category_cd)                    
+			            else 0
+			       end include_menu_cnt
+			from   v_hs_biz_category a
+			where  1 = 1
+			--and    a.biz_category_cd != 'IN00000000' 
+			and    a.use_yn = 'y'
+			--order  by a.path, a.sort_no;
+			order  by a.sort_no, a.path;
+		]]>
+	</select>
+	
+	<insert id="savePubCategoryData" parameterType="java.util.List">
+		<selectKey keyProperty="cnt" resultType="java.lang.Integer" order="AFTER">
+    		select count(*) as cnt from hs_pub_menu_category
+  		</selectKey>
+		<foreach item="item" collection="list" separator="">
+			with merge_data as (
+				select #{item.pubCategoryCd} as pubCategoryCd
+				     , #{item.pubCategoryNm} as pubCategoryNm
+				     , #{item.upperPubCategoryCd} as upperPubCategoryCd
+				     , #{item.sortNo} as sortNo
+				     , #{item.description} as description
+				     , #{item.rmk} as rmk
+				     , #{item.useYn} as useYn
+				     , #{item.level} as level
+				     , #{item.createId} as createId
+				     , now()::timestamp as createDt
+				     , #{item.updateId} as updateId
+				     , now()::timestamp as updateDt
+				     , coalesce((select max(pub_category_cd) 
+				                 from   hs_pub_menu_category 
+				                 where  upper_pub_category_cd = #{item.upperPubCategoryCd}), 'EX00000000') as maxCategoryCd
+			), update_option AS (
+				update hs_pub_menu_category 
+				set    pub_category_nm = merge_data.pubCategoryNm
+				     , upper_pub_category_cd = merge_data.upperPubCategoryCd
+				     , sort_no = merge_data.sortNo
+				     , description = merge_data.description
+				     , rmk = merge_data.rmk
+				     , use_yn = merge_data.useYn
+				     , update_id = merge_data.updateId
+				     , update_dt = merge_data.updateDt::timestamp
+				from   merge_data 
+				where  hs_pub_menu_category.pub_category_cd = merge_data.pubCategoryCd
+			)
+			insert into hs_pub_menu_category
+			select 
+                   case when merge_data.level = 1 then left(merge_data.upperPubCategoryCd, 2) || lpad((right(left(merge_data.maxCategoryCd, 4), 2)::integer + 1)::text, 2, '0') || '000000'
+                        when merge_data.level = 2 then left(merge_data.upperPubCategoryCd, 4) || lpad((right(left(merge_data.maxCategoryCd, 7), 3)::integer + 1)::text, 3, '0') || '000'
+                        when merge_data.level = 3 then left(merge_data.upperPubCategoryCd, 7) || lpad((right(merge_data.maxCategoryCd, 3)::integer + 1)::text, 3, '0')
+                   end pubCategoryCd
+			     , merge_data.pubCategoryNm
+			     , merge_data.upperPubCategoryCd
+			     , merge_data.sortNo
+			     , merge_data.description
+			     , merge_data.rmk
+			     , merge_data.useYn
+			     , merge_data.createId
+			     , merge_data.createDt::timestamp
+			     , ''
+			     , now()
+			from   merge_data
+		    where  not exists(select 1 
+		                      from   hs_pub_menu_category 
+		                      where  hs_pub_menu_category.pub_category_cd = merge_data.pubCategoryCd
+				              ); 
+		</foreach>
+	</insert>
+	
+	<insert id="saveBizCategoryData" parameterType="java.util.List">
+		<selectKey keyProperty="cnt" resultType="java.lang.Integer" order="AFTER">
+    		select count(*) as cnt from hs_biz_menu_category
+  		</selectKey>
+		<foreach item="item" collection="list" separator="">
+			with merge_data as (
+				select #{item.bizCategoryCd} as bizCategoryCd
+				     , #{item.bizCategoryNm} as bizCategoryNm
+				     , #{item.upperBizCategoryCd} as upperBizCategoryCd
+				     , #{item.sortNo} as sortNo
+				     , #{item.description} as description
+				     , #{item.rmk} as rmk
+				     , #{item.useYn} as useYn
+				     , #{item.level} as level
+				     , #{item.createId} as createId
+				     , now()::timestamp as createDt
+				     , #{item.updateId} as updateId
+				     , now()::timestamp as updateDt
+				     , coalesce((select max(biz_category_cd) 
+				                 from   hs_biz_menu_category 
+				                 where  upper_biz_category_cd = #{item.upperBizCategoryCd}), 'IN00000000') as maxCategoryCd
+			), update_option AS (
+				update hs_biz_menu_category 
+				set    biz_category_nm = merge_data.bizCategoryNm
+				     , upper_biz_category_cd = merge_data.upperbizCategoryCd
+				     , sort_no = merge_data.sortNo
+				     , description = merge_data.description
+				     , rmk = merge_data.rmk
+				     , use_yn = merge_data.useYn
+				     , update_id = merge_data.updateId
+				     , update_dt = merge_data.updateDt::timestamp
+				from   merge_data 
+				where  hs_biz_menu_category.biz_category_cd = merge_data.bizCategoryCd
+			)
+			insert into hs_biz_menu_category
+			select 
+                   case when merge_data.level = 1 then left(merge_data.upperBizCategoryCd, 2) || lpad((right(left(merge_data.maxCategoryCd, 4), 2)::integer + 1)::text, 2, '0') || '000000'
+                        when merge_data.level = 2 then left(merge_data.upperBizCategoryCd, 4) || lpad((right(left(merge_data.maxCategoryCd, 7), 3)::integer + 1)::text, 3, '0') || '000'
+                        when merge_data.level = 3 then left(merge_data.upperBizCategoryCd, 7) || lpad((right(merge_data.maxCategoryCd, 3)::integer + 1)::text, 3, '0')
+                   end bizCategoryCd
+			     , merge_data.bizCategoryNm
+			     , merge_data.upperBizCategoryCd
+			     , merge_data.sortNo
+			     , merge_data.description
+			     , merge_data.rmk
+			     , merge_data.useYn
+			     , merge_data.createId
+			     , merge_data.createDt::timestamp
+			     , ''
+			     , now()
+			from   merge_data
+		    where  not exists(select 1 
+		                      from   hs_biz_menu_category 
+		                      where  hs_biz_menu_category.biz_category_cd = merge_data.bizCategoryCd
+				              ); 
+		</foreach>
+	</insert>
+	
+	<select id="getCategoryGroupList" parameterType="CategoryVo" resultType="CategoryVo">
+			with recursive group_category as (
+				select ${categoryType}_category_cd
+				     , ${categoryType}_category_nm
+				     , upper_${categoryType}_category_cd
+				     , sort_no
+				     , description
+				     , rmk
+				     , use_yn
+				     , 0 as level
+				     , array[${categoryType}_category_cd::text] as path
+				     , false as cycle
+				     , 0.0::bigint as cnt
+				from   hs_${categoryType}_menu_category
+				where  upper_${categoryType}_category_cd = 'ROOT'
+				
+				union all
+				
+				select a.${categoryType}_category_cd
+				     , a.${categoryType}_category_nm
+				     , a.upper_${categoryType}_category_cd
+				     , a.sort_no
+				     , a.description
+				     , a.rmk
+				     , a.use_yn
+				     , level + 1 as level
+				     , path || a.${categoryType}_category_cd::text
+				     , a.${categoryType}_category_cd = any(path)
+				     , (select count(*) from hs_${categoryType}_menu_category where upper_${categoryType}_category_cd = a.${categoryType}_category_cd) as cnt
+				from   hs_${categoryType}_menu_category a, group_category b
+				where  a.upper_${categoryType}_category_cd = b.${categoryType}_category_cd
+				and    not cycle
+			) 
+			select ${categoryType}_category_cd as category_cd 
+			     , ${categoryType}_category_nm as category_nm
+			     , upper_${categoryType}_category_cd as upper_category_cd
+			     , use_yn
+			     , level
+			from   group_category 
+			where  1 = 1
+			and    use_yn = 'y'
+			<if test="upperCategoryCd == ''">
+			and    upper_${categoryType}_category_cd = (case when #{categoryType} = 'pub' then 'EX00000000' else 'IN00000000' end)
+		    </if>
+			<if test="upperCategoryCd != null and upperCategoryCd != ''">
+			and    upper_${categoryType}_category_cd = #{upperCategoryCd}
+		    </if>
+			order  by path, sort_no;
+	</select>
+	
+	<select id="getMenuList" parameterType="CategoryVo" resultType="CategoryVo">
+		select ${categoryType}_menu_cd as menu_cd
+		     , (select ${categoryType}_main_cd from hs_${categoryType}_main_mng where ${categoryType}_menu_cd = a.${categoryType}_menu_cd) as main_cd
+		     , ${categoryType}_menu_nm as menu_nm
+		     , ${categoryType}_category_cd as category_cd
+		     , (select ${categoryType}_category_nm from hs_${categoryType}_menu_category where ${categoryType}_category_cd = a.${categoryType}_category_cd) as category_nm
+		     , description
+		     , contents
+		     , ${categoryType}_menu_url as menu_url
+		     , ${categoryType}_menu_type_scd as menu_type_scd
+		     <if test="categoryType == 'biz'">
+		     , ${categoryType}_menu_role_scd as menu_role_scd
+		     </if>
+		     , coalesce((select use_yn from hs_${categoryType}_main_mng where ${categoryType}_menu_cd = a.${categoryType}_menu_cd), 'n') main_use_yn
+		     , encode(${categoryType}_menu_img, 'base64') as menu_img
+		     , rmk
+		     , use_yn
+		from   hs_${categoryType}_menu_mst a
+		where  1 = 1
+		<if test="categoryCd != null and categoryCd != ''">
+		and    array_to_string((select path from v_hs_${categoryType}_category where ${categoryType}_category_cd = a.${categoryType}_category_cd), '') like '%' || #{categoryCd} || '%'
+		</if>
+		<if test="menuNm != null and menuNm != ''">
+		and    ${categoryType}_menu_nm like '%'||#{menuNm}||'%'
+		</if>
+		order by 3, 1;
+	</select>
+	
+	<select id="getMaxMenuCd" parameterType="CategoryVo" resultType="String">
+		select 'MN' || lpad((right(coalesce((select max(${categoryType}_menu_cd) from hs_${categoryType}_menu_mst), '0'), 8)::integer + 1)::text, 8, '0') as menu_cd
+	</select>
+	
+	<select id="getMenuDetailInfo" parameterType="CategoryVo" resultType="CategoryVo">
+		select ${categoryType}_menu_cd as menu_cd
+		     , (select ${categoryType}_main_cd from hs_${categoryType}_main_mng where ${categoryType}_menu_cd = a.${categoryType}_menu_cd) as main_cd
+		     , ${categoryType}_menu_nm as menu_nm
+		     , ${categoryType}_category_cd as category_cd
+		     , (select ${categoryType}_category_nm from hs_${categoryType}_menu_category where ${categoryType}_category_cd = a.${categoryType}_category_cd) as category_nm
+		     , description
+		     , contents
+		     , ${categoryType}_menu_url as menu_url
+		     , ${categoryType}_menu_type_scd as menu_type_scd
+		     <if test="categoryType == 'biz'">
+		     , ${categoryType}_menu_role_scd as menu_role_scd
+		     </if>
+		     , ${categoryType}_menu_img as menu_img
+		     , rmk
+		     , (select use_yn from hs_${categoryType}_main_mng where ${categoryType}_menu_cd = a.${categoryType}_menu_cd) as main_use_yn
+		     , use_yn
+		     , (
+		     		with recursive group_category as (
+						select ${categoryType}_category_cd
+						     , upper_${categoryType}_category_cd
+						     , array[${categoryType}_category_cd::text] as path
+					    from   hs_${categoryType}_menu_category 
+					    where  upper_${categoryType}_category_cd = 'ROOT' 
+					    union all 
+					    select a.${categoryType}_category_cd
+					         , a.upper_${categoryType}_category_cd
+					         , path  || a.${categoryType}_category_cd::text as path 
+					    from   hs_${categoryType}_menu_category a, group_category b 
+					    where  a.upper_${categoryType}_category_cd = b.${categoryType}_category_cd 
+					) 
+					select   path as category_path
+					from     group_category 
+					where    ${categoryType}_category_cd = a.${categoryType}_category_cd
+		       ) as category_path
+		from   hs_${categoryType}_menu_mst a
+		where  ${categoryType}_menu_cd = #{menuCd};
+	</select>
+	
+	<insert id="saveMenuInfo" parameterType="CategoryVo">
+		with merge_data as (
+				select #{menuCd} as menuCd
+				     , #{menuNm} as menuNm
+				     , #{categoryCd} as categoryCd
+				     , #{description} as description
+				     , #{contents} as contents
+				     , #{menuUrl} as menuUrl
+				     , #{menuTypeScd} as menuTypeScd
+				     <if test="menuImg != null">
+				     , #{menuImg, typeHandler=org.apache.ibatis.type.BlobTypeHandler, jdbcType=BLOB} as menuImg
+				     </if>
+				     <if test="categoryType == 'biz'">
+				     , #{menuRoleScd} as menuRoleScd
+				     </if>
+				     , #{useYn} as useYn
+				     , #{createId} as createId
+				     , now()::timestamp as createDt
+				     , #{updateId} as updateId
+				     , now()::timestamp as updateDt
+			), update_option AS (
+				update hs_${categoryType}_menu_mst 
+				set    ${categoryType}_menu_nm = merge_data.menuNm
+				     , ${categoryType}_category_cd = merge_data.categoryCd
+				     , description = merge_data.description
+				     , contents = merge_data.contents
+				     , ${categoryType}_menu_url = merge_data.menuUrl
+				     , ${categoryType}_menu_type_scd = merge_data.menuTypeScd
+				     <if test="menuImg != null">
+				     , ${categoryType}_menu_img = merge_data.menuImg
+				     </if>
+				     <if test="categoryType == 'biz'">
+				     , ${categoryType}_menu_role_scd = merge_data.menuRoleScd
+				     </if>
+				     , use_yn = merge_data.useYn
+				     , update_id = merge_data.updateId
+				     , update_dt = merge_data.updateDt::timestamp
+				from   merge_data 
+				where  hs_${categoryType}_menu_mst.${categoryType}_menu_cd = merge_data.menuCd
+			)
+			insert into hs_${categoryType}_menu_mst
+			(
+				${categoryType}_menu_cd
+			  , ${categoryType}_menu_nm
+			  , ${categoryType}_category_cd
+			  , description
+			  , contents
+			  , ${categoryType}_menu_url
+			  , ${categoryType}_menu_type_scd
+		      <if test="menuImg != null">
+		      , ${categoryType}_menu_img
+		      </if>
+		      <if test="categoryType == 'biz'">
+		      , ${categoryType}_menu_role_scd
+		      </if>
+		      , use_yn
+		      , create_id
+		      , create_dt
+			)
+			select merge_data.menuCd
+			     , merge_data.menuNm
+			     , merge_data.categoryCd
+                 , merge_data.description
+                 , merge_data.contents
+                 , merge_data.menuUrl
+                 , merge_data.menuTypeScd
+			     <if test="menuImg != null">
+                 , merge_data.menuImg
+                 </if>
+                 <if test="categoryType == 'biz'">
+		         , merge_data.menuRoleScd
+		         </if>
+                 , merge_data.useYn
+                 , merge_data.createId
+                 , merge_data.createDt
+			from   merge_data
+			where  not exists(select 1 
+		                      from   hs_${categoryType}_menu_mst 
+		                      where  hs_${categoryType}_menu_mst.${categoryType}_menu_cd = merge_data.menuCd
+				              );
+	</insert>
+	
+	<insert id="saveMainMng" parameterType="CategoryVo">
+		with merge_data as (
+				select #{menuCd} as menuCd
+				     , #{mainCd} as mainCd
+				     , #{mainUseYn} as mainUseYn
+				     , #{createId} as createId
+				     , now()::timestamp as createDt
+				     , #{updateId} as updateId
+				     , now()::timestamp as updateDt
+				     , #{layout}::smallint as layout
+			), update_option AS (
+				update hs_${categoryType}_main_mng 
+				set    use_yn = merge_data.mainUseYn
+				     , update_id = merge_data.updateId
+				     , update_dt = merge_data.updateDt::timestamp
+				     , layout = merge_data.layout::smallint
+				from   merge_data 
+				where  hs_${categoryType}_main_mng.${categoryType}_menu_cd = merge_data.menuCd and hs_${categoryType}_main_mng.${categoryType}_main_cd = merge_data.mainCd 
+			)
+			insert into hs_${categoryType}_main_mng
+			(
+				${categoryType}_main_cd
+			  , ${categoryType}_menu_cd
+			  , ${categoryType}_main_loc_no
+			  , ${categoryType}_menu_img_use_yn
+			  , use_yn
+			  , create_id
+			  , create_dt
+			  , layout
+			)
+			select 'MM' || lpad((right(coalesce((select max(${categoryType}_main_cd) from hs_${categoryType}_main_mng), '0'), 8)::integer + 1)::text, 8, '0')
+			     , merge_data.menuCd
+			     , 0
+			     , merge_data.mainUseYn
+			     , 'y'
+			     , merge_data.createId
+                 , merge_data.createDt
+                 , merge_data.layout  
+			from   merge_data
+			where  not exists(select 1 
+		                      from   hs_${categoryType}_main_mng 
+		                      where  hs_${categoryType}_main_mng.${categoryType}_menu_cd = merge_data.menuCd
+		                      and    hs_${categoryType}_main_mng.${categoryType}_main_cd = merge_data.mainCd
+				              );
+	</insert>
+	
+	<delete id="deleteMainMng" parameterType="CategoryVo">
+		delete from hs_${categoryType}_main_mng
+		where  ${categoryType}_menu_cd = #{menuCd}
+	</delete>
+	
+	<select id="getMenuDetailAttachFile" parameterType="CategoryVo" resultType="CategoryVo">
+		select seq
+		     , ${categoryType}_menu_cd as menu_cd
+		     , file_nm
+		     , file_size
+		     , file_data
+		from   hs_${categoryType}_menu_att_file
+		where  1 = 1
+		and    ${categoryType}_menu_cd = #{menuCd}
+		order by seq
+		;
+	</select>
+	
+	<select id="getMenuDetailAttachFileOne" parameterType="CategoryVo" resultType="CategoryVo">
+		select seq
+		     , ${categoryType}_menu_cd as menu_cd
+		     , file_nm
+		     , file_size
+		     , file_data
+		from   hs_${categoryType}_menu_att_file
+		where  1 = 1
+		and    ${categoryType}_menu_cd = #{menuCd}
+		and    seq = #{seq};
+	</select>
+	
+	<select id="getMenuImg" parameterType="CategoryVo" resultType="CategoryVo">
+		select encode(${categoryType}_menu_img, 'base64') as menu_img_src
+		from   hs_${categoryType}_menu_mst a
+		where  1 = 1
+		and    ${categoryType}_menu_cd = #{menuCd}
+		;
+	</select>
+	
+	<insert id="saveMenuFileData" parameterType="CategoryVo">
+		insert into hs_${categoryType}_menu_att_file
+		(
+			seq
+		  , ${categoryType}_menu_cd
+		  , file_nm
+		  , file_size
+		  , file_data
+	      , create_id
+	      , create_dt
+		)
+		values(
+		       (select coalesce(max(seq), 0) + 1 from hs_${categoryType}_menu_att_file)
+		      , #{menuCd}
+		      , #{fileNm}
+		      , #{fileSize}
+		      , #{fileData, jdbcType=BLOB}
+		      , #{createId}
+		      , now()
+		);
+			
+	</insert>
+	
+	<delete id="deleteMenuInfo" parameterType="CategoryVo">
+	<!--  
+		update hs_${categoryType}_menu_mst
+		set    use_yn = 'n'
+		     , update_id = #{updateId}
+		     , update_dt = now()
+		where  ${categoryType}_menu_cd = #{menuCd};
+		
+		update hs_${categoryType}_main_mng
+		set    use_yn = 'n'
+		     , update_id = #{updateId}
+		     , update_dt = now()
+		where  ${categoryType}_menu_cd = #{menuCd};
+	-->
+	delete from hs_${categoryType}_menu_att_file where ${categoryType}_menu_cd = #{menuCd};
+	
+	delete from hs_${categoryType}_main_mng
+	where  ${categoryType}_menu_cd = #{menuCd};
+	
+	delete from hs_${categoryType}_menu_mst
+	where  ${categoryType}_menu_cd = #{menuCd};
+	</delete>
+	
+	<delete id="deleteMenuFileData" parameterType="CategoryVo">
+		delete from  hs_${categoryType}_menu_att_file where ${categoryType}_menu_cd = #{menuCd} and seq = #{seq}; 
+	</delete>
+	
+	<select id="getDeptList" parameterType="map" resultType="CategoryVo">
+		select case when dept_order = '3' then dept_name
+		            when dept_order = '4' then (select dept_name from hs_user_dept where dept_id = a.upper_dept_id)
+		       end gbn_name
+		     , dept_id
+		     , dept_name
+		     , dept_order
+		from   hs_user_dept a
+		where  dept_order in ('3', '4') 
+		<if test="deptId != null and deptId != ''">
+		and    (dept_id = #{deptId} or upper_dept_id = #{deptId}) 
+		</if>
+		order by gbn_name, dept_order, dept_name;
+	</select>
+	
+	<select id="getMappingDeptList" parameterType="map" resultType="CategoryVo">
+		select a.biz_menu_cd as menu_cd
+		     , case when (select dept_order from hs_user_dept where dept_id = a.dept_id) = '3' then (select dept_name from hs_user_dept where dept_id = a.dept_id)
+		            when (select dept_order from hs_user_dept where dept_id = a.dept_id) = '4' then (select dept_name from hs_user_dept where dept_id = (select upper_dept_id from hs_user_dept where dept_id = a.dept_id))
+		       end gbn_name
+		     , a.dept_id
+		     , (select dept_name from hs_user_dept where dept_id = a.dept_id) as dept_name
+		     , (select dept_order from hs_user_dept where dept_id = a.dept_id) as dept_order
+		     , (select count(*) from hs_menu_dept_user_map where biz_menu_cd = a.biz_menu_cd and dept_id = a.dept_id) as user_cnt
+		from   hs_menu_dept_map a
+		where  a.biz_menu_cd = #{menuCd} 
+		order by gbn_name, dept_order, dept_name;
+	</select>
+	
+	<insert id="addDeptMap"  parameterType="map">
+        WITH upsert AS (
+			select #{menuCd} as menuCd
+			     , #{deptId} as deptId
+			     , #{createId} as createId
+			     , now() as createDt
+			     , #{updateId} as updateId
+			     , now() as updateDt
+		), update_option AS (
+			update hs_menu_dept_map 
+			set    update_id = upsert.updateId
+			     , update_dt = upsert.updateDt
+			from   upsert 
+			where  hs_menu_dept_map.biz_menu_cd = upsert.menuCd 
+			and    hs_menu_dept_map.dept_id = upsert.deptId 
+		)
+		insert into hs_menu_dept_map
+		select upsert.menuCd
+		     , upsert.deptId
+		     , upsert.createId
+		     , upsert.createDt
+		     , null
+		     , null
+		from   upsert 
+		where  not exists(select 1 
+		                  from   hs_menu_dept_map 
+		                  where  hs_menu_dept_map.biz_menu_cd = upsert.menuCd 
+		                  and    hs_menu_dept_map.dept_id = upsert.deptId 
+		                  );
+	</insert>
+	
+	<delete id="removeDeptMap" parameterType="map">
+		delete from hs_menu_dept_user_map where biz_menu_cd = #{menuCd} and dept_id = #{deptId};
+		delete from hs_menu_dept_map where biz_menu_cd = #{menuCd} and dept_id = #{deptId};
+	</delete>
+	
+	<select id="getUserList" parameterType="map" resultType="CategoryVo">
+		select a.user_id
+		     , a.user_name
+		     , a.user_stat_name
+		     , a.dept_id
+		     , (select dept_name from hs_user_dept where dept_id = a.dept_id) as dept_name
+		     , (select dept_order from hs_user_dept where dept_id = a.dept_id) as dept_order
+		     , case when (select dept_order from hs_user_dept where dept_id = a.dept_id) = '3' then (select dept_name from hs_user_dept where dept_id = a.dept_id)
+			        when (select dept_order from hs_user_dept where dept_id = a.dept_id) = '4' then (select dept_name from hs_user_dept where dept_id = (select upper_dept_id from hs_user_dept where dept_id = a.dept_id))
+		       end gbn_name
+		from   hs_user_mst a
+		where  a.dept_id in (select dept_id from hs_menu_dept_map where biz_menu_cd = #{menuCd})
+		<if test="searchText != null and searchText != ''">
+		<choose>
+            <when test="searchType == 'userId' ">
+			and a.user_id like '%'||#{searchText}||'%' 
+			</when>
+			<otherwise>
+			and a.user_name like '%'||#{searchText}||'%' 
+			</otherwise>
+		</choose>
+		</if>
+		order by 1;
+	</select>
+	
+	<select id="getMappingUserList" parameterType="map" resultType="CategoryVo">
+		select a.user_id
+		     , (select user_name from hs_user_mst where user_id = a.user_id) as user_name
+		     , (select user_stat_name from hs_user_mst where user_id = a.user_id) as user_stat_name
+		     , a.dept_id
+		     , (select dept_name from hs_user_dept where dept_id = a.dept_id) as dept_name
+		     , (select dept_order from hs_user_dept where dept_id = a.dept_id) as dept_order
+		     , case when (select dept_order from hs_user_dept where dept_id = a.dept_id) = '3' then (select dept_name from hs_user_dept where dept_id = a.dept_id)
+				    when (select dept_order from hs_user_dept where dept_id = a.dept_id) = '4' then (select dept_name from hs_user_dept where dept_id = (select upper_dept_id from hs_user_dept where dept_id = a.dept_id))
+		       end gbn_name
+		from   hs_menu_dept_user_map a
+		where  a.dept_id in (select dept_id from hs_menu_dept_map where biz_menu_cd =  #{menuCd})
+		and    a.biz_menu_cd =  #{menuCd}
+	</select>
+	
+	<insert id="addUserMap"  parameterType="map">
+        WITH upsert AS (
+			select #{menuCd} as menuCd
+			     , #{deptId} as deptId
+			     , #{userId} as userId
+			     , #{createId} as createId
+			     , now() as createDt
+			     , #{updateId} as updateId
+			     , now() as updateDt
+		), update_option AS (
+			update hs_menu_dept_user_map 
+			set    update_id = upsert.updateId
+			     , update_dt = upsert.updateDt
+			from   upsert 
+			where  hs_menu_dept_user_map.biz_menu_cd = upsert.menuCd 
+			and    hs_menu_dept_user_map.dept_id = upsert.deptId
+			and    hs_menu_dept_user_map.user_id = upsert.userId 
+		)
+		insert into hs_menu_dept_user_map
+		select upsert.menuCd
+		     , upsert.deptId
+		     , upsert.userId
+		     , upsert.createId
+		     , upsert.createDt
+		     , null
+		     , null
+		from   upsert 
+		where  not exists(select 1 
+		                  from   hs_menu_dept_user_map 
+		                  where  hs_menu_dept_user_map.biz_menu_cd = upsert.menuCd 
+		                  and    hs_menu_dept_user_map.dept_id = upsert.deptId 
+		                  and    hs_menu_dept_user_map.user_id = upsert.userId
+		                  );
+	</insert>
+	
+	<delete id="removeUserMap" parameterType="map">
+		delete from hs_menu_dept_user_map
+  		where  biz_menu_cd = #{menuCd}
+  	    and    dept_id = #{deptId}
+  	    and    user_id = #{userId}
+	</delete>
+	
+	<update id="updateMenuMst" parameterType="CategoryVo">
+		update hs_${categoryType}_menu_mst
+		set    use_yn = #{useYn}
+		     , update_id = #{updateId}
+		     , update_dt = now()
+		where  ${categoryType}_menu_cd = #{menuCd};
+		
+		update hs_${categoryType}_main_mng
+		set    use_yn = #{mainUseYn}
+			 , update_id = #{updateId}
+		     , update_dt = now()
+		where  ${categoryType}_menu_cd = #{menuCd}
+		and    ${categoryType}_main_cd = #{mainCd};
+	</update>
+	
+	<select id="getLayout" resultType="int" parameterType="CategoryVo">
+		select max(layout) 
+		from hs_${categoryType}_main_mng
+	</select>
+</mapper>

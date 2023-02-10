@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.BlindAnalsDao">	
+	
+	<!-- 사각지대 분석결과 -->
+	<select id="selectBlindList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+			select '2-1-1' as mid,
+				   ${coord} as coord, 
+			       part2.*
+			from(
+				select 
+					case when rid is null then 0 else rid end as rid, 
+					div, sum(pop) as pop, sum(fpop) as fpop, 
+					item
+				from(
+					select 1 as rid, spo_no_cd as div,
+						sum(coalesce(pop, 0)) as pop,
+						sum(coalesce(sk_pop,0)) as fpop,						
+						ST_ASTEXT(ST_Transform(geom, ${coord})) as item
+					from hst_ana_sagakjidae
+					group by spo_no_cd, geom
+				)part1
+				group by grouping sets((rid, div, item), ())
+			)part2
+			order by rid desc, pop desc, fpop desc
+			limit 100
+		]]>
+	</select>	
+	
+	<!-- 사각지대 분석결과 -->
+	<select id="selectBlindAnals" parameterType="trafficAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+		with hst_gis_ana_blind as(
+			select sum(pop) as cnt, 0 as min,
+				'POLYGON((' || array_to_string(  array_agg( 
+					        	( st_x(poly) - ${MINX} ) / ${RESOLUTION}  || ' ' ||  
+					        	( ${MAXY} - st_y(poly) )/ ${RESOLUTION}), ',' ) || '))' as wkt
+			from(
+				select spo_no_cd, pop, ST_Transform(geom, ${COORD}) as poly
+				from(		
+					select spo_no_cd, pop, (ST_DumpPoints( ST_EXTERIORRING(st_geometryn( geom, 1 )) )).geom
+					from hst_ana_sagakjidae
+					WHERE ST_Intersects( 
+		    					ST_GeomFromText('POLYGON(( ${CMINX} ${CMINY},${CMAXX} ${CMINY},${CMAXX} ${CMAXY},${CMINX} ${CMAXY},${CMINX} ${CMINY}))', 4326), geom
+		    				) = true
+		    				order by spo_no_cd				
+				)part1																																	
+			)part2
+			GROUP BY spo_no_cd
+		)
+		select ${MAX} as cnt, ${MIN} as min, null as wkt
+		union all
+		select * from hst_gis_ana_blind
+		]]>
+	</select>
+	
+	
+	<!-- 사각지대 범례정보 -->
+	<select id="selectBlindLgdInfo" parameterType="trafficAnalsGisVO" resultType="egovMap">
+		<![CDATA[
+			select 
+				max(coalesce(pop,0)) as max,
+				min(coalesce(pop,0)) as min,
+				max(coalesce(sk_pop,0)) as fmax,
+				min(coalesce(sk_pop,0)) as fmin
+			from hst_ana_sagakjidae
+		]]>
+	</select>
+</mapper>

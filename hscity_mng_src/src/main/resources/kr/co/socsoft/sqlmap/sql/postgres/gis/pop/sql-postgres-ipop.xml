@@ -1,0 +1,760 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.pop.service.IPopAnalsDao">
+	<!-- 시도별 분석결과 -->
+	<select id="selectSiIPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+			select 
+				case when div is null then '합계' else div end as div, 
+				case when div is null then 0 else rid end as rid, 
+				item, floor(sum(tot)) as tot
+			from(
+				select 
+						1 as rid,
+						ctp_kor_nm as div, 
+						inflow_cd as item,	tot
+				from(
+					select  inflow_cd, 
+							sum(mcnt1+mcnt2+mcnt3+mcnt4+mcnt5+mcnt6+mcnt7+mcnt8+mcnt9+mcnt10+mcnt11+mcnt12+mcnt13+mcnt14+mcnt15+
+								wcnt1+wcnt2+wcnt3+wcnt4+wcnt5+wcnt6+wcnt7+wcnt8+wcnt9+wcnt10+wcnt11+wcnt12+wcnt13+wcnt14+wcnt15) as tot
+					from(
+						select substr(inflow_cd, 1, 2) as inflow_cd, 
+							coalesce(man_flow_pop_cnt_0004,0) as mcnt1, coalesce(man_flow_pop_cnt_0509,0) as mcnt2,
+							coalesce(man_flow_pop_cnt_1014,0) as mcnt3, coalesce(man_flow_pop_cnt_1519,0) as mcnt4,
+							coalesce(man_flow_pop_cnt_2024,0) as mcnt5, coalesce(man_flow_pop_cnt_2529,0) as mcnt6,
+							coalesce(man_flow_pop_cnt_3034,0) as mcnt7, coalesce(man_flow_pop_cnt_3539,0) as mcnt8,
+							coalesce(man_flow_pop_cnt_4044,0) as mcnt9, coalesce(man_flow_pop_cnt_4549,0) as mcnt10,
+							coalesce(man_flow_pop_cnt_5054,0) as mcnt11, coalesce(man_flow_pop_cnt_5559,0) as mcnt12,
+							coalesce(man_flow_pop_cnt_6064,0) as mcnt13, coalesce(man_flow_pop_cnt_6569,0) as mcnt14,
+							coalesce(man_flow_pop_cnt_70u,0) as mcnt15,
+							coalesce(wman_flow_pop_cnt_0004,0) as wcnt1, coalesce(wman_flow_pop_cnt_0509,0) as wcnt2,
+							coalesce(wman_flow_pop_cnt_1014,0) as wcnt3, coalesce(wman_flow_pop_cnt_1519,0) as wcnt4,
+							coalesce(wman_flow_pop_cnt_2024,0) as wcnt5, coalesce(wman_flow_pop_cnt_2529,0) as wcnt6,
+							coalesce(wman_flow_pop_cnt_3034,0) as wcnt7, coalesce(wman_flow_pop_cnt_3539,0) as wcnt8,
+							coalesce(wman_flow_pop_cnt_4044,0) as wcnt9, coalesce(wman_flow_pop_cnt_4549,0) as wcnt10,
+							coalesce(wman_flow_pop_cnt_5054,0) as wcnt11, coalesce(wman_flow_pop_cnt_5559,0) as wcnt12,
+							coalesce(wman_flow_pop_cnt_6064,0) as wcnt13, coalesce(wman_flow_pop_cnt_6569,0) as wcnt14,
+							coalesce(wman_flow_pop_cnt_70u,0) as wcnt15
+						from ( ${dytbl} ) ipop
+						where 1=1
+						]]>
+							<choose>
+		            			<when test="std == 'day'">
+				        			<if test="sday != null and sday != ''">
+				                		and std_ymd <![CDATA[>=]]> #{sday} 
+				                	</if>
+				                	<if test="eday != null and eday != ''">
+					        			and std_ymd <![CDATA[<=]]> #{eday}
+					        		</if>
+		            			</when>
+		            			<otherwise>
+		            				<if test="smonth != null and smonth != ''">
+				                		and std_ym <![CDATA[>=]]> #{smonth} 
+				                	</if>
+				                	<if test="emonth != null and emonth != ''">
+					        			and std_ym <![CDATA[<=]]> #{emonth}
+					        		</if>
+		            			</otherwise>
+		            		</choose>   
+				        	<choose>
+				        		<when test="atype == 'area'">
+				        			and block_cd in (select block_cd from skt_hs_small_block_a_area)
+				        		</when>
+				        		<otherwise>				        			
+				        			and block_cd in (select block_cd from skt_hs_small_block_a where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true)
+				        		</otherwise>
+				        	</choose>
+				        	<if test="range == 'in'">
+				        		and inflow_cd like '41590%'
+				        	</if>
+				        	<if test="range == 'out'">
+				        		and inflow_cd not like '41590%'
+				        	</if>
+					  <![CDATA[
+					)part1
+					group by inflow_cd	
+				)part2 left join  hm_tl_scco_ctprvn_a si
+				on part2.inflow_cd = si.ctprvn_cd				
+			)part3
+			group by grouping sets((rid, div, item),())
+			order by rid desc, tot desc		
+		]]>
+	</select>
+	
+	<!-- 시도별 geom -->
+	<select id="selectSiGeomList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom, b.geom as hgeom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		),
+		hm_bnd_dong_info AS(
+			select case when geom is null then null else ST_Centroid(ST_Transform(geom, 900913)) end as geom
+			from hm_bnd_adm_dong_pg_a 
+    		where gubun = #{gubun}  
+			AND adm_cd in (${dongcd})
+		),
+		skt_hs_inflow_age_all AS(
+				select floor(sum(cnt)) as cnt, 0 as min, 
+					   case when bgeom is null then null else ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) end as line, 
+					   case when bgeom is null then null else ST_ASTEXT(bgeom) end bpoint, 
+					   case when hgeom is null then null else ST_ASTEXT(hgeom) end hpoint,
+					   sinm as item
+				from(
+					select 
+						tot as cnt,
+						]]>
+		   			   		<choose>
+					        	<when test="atype == 'area'">
+					        		(select geom from hm_bnd_dong_info) as hgeom,				        		
+					        	</when>
+					        	<otherwise>
+					        		ST_Centroid(ST_Transform(
+					        			ST_Centroid(ST_GeomFromText('${area}', 4326))
+					        		, ${coord})) as hgeom,
+					        	</otherwise>
+					        </choose>
+		   			   <![CDATA[
+		   			   case when si.geom is null then null else ST_Centroid(ST_Transform(si.geom, ${coord})) end as bgeom,
+				   	   si.ctp_kor_nm as sinm
+					from(
+					
+						select inflow_cd, sum(mcnt1+mcnt2+mcnt3+mcnt4+mcnt5+mcnt6+mcnt7+mcnt8+mcnt9+mcnt10+mcnt11+mcnt12+mcnt13+mcnt14+mcnt15+
+								wcnt1+wcnt2+wcnt3+wcnt4+wcnt5+wcnt6+wcnt7+wcnt8+wcnt9+wcnt10+wcnt11+wcnt12+wcnt13+wcnt14+wcnt15) as tot 
+						from( 
+							select substr(inflow_cd, 1, 2) as inflow_cd,  block_cd,
+								coalesce(man_flow_pop_cnt_0004,0) as mcnt1, coalesce(man_flow_pop_cnt_0509,0) as mcnt2, coalesce(man_flow_pop_cnt_1014,0) as mcnt3, 
+								coalesce(man_flow_pop_cnt_1519,0) as mcnt4, coalesce(man_flow_pop_cnt_2024,0) as mcnt5, coalesce(man_flow_pop_cnt_2529,0) as mcnt6, coalesce(man_flow_pop_cnt_3034,0) as mcnt7, 
+								coalesce(man_flow_pop_cnt_3539,0) as mcnt8, coalesce(man_flow_pop_cnt_4044,0) as mcnt9, coalesce(man_flow_pop_cnt_4549,0) as mcnt10, coalesce(man_flow_pop_cnt_5054,0) as mcnt11, 
+								coalesce(man_flow_pop_cnt_5559,0) as mcnt12, coalesce(man_flow_pop_cnt_6064,0) as mcnt13, coalesce(man_flow_pop_cnt_6569,0) as mcnt14, coalesce(man_flow_pop_cnt_70u,0) as mcnt15, 
+								coalesce(wman_flow_pop_cnt_0004,0) as wcnt1, coalesce(wman_flow_pop_cnt_0509,0) as wcnt2, coalesce(wman_flow_pop_cnt_1014,0) as wcnt3, coalesce(wman_flow_pop_cnt_1519,0) as wcnt4,
+								coalesce(wman_flow_pop_cnt_2024,0) as wcnt5, coalesce(wman_flow_pop_cnt_2529,0) as wcnt6, coalesce(wman_flow_pop_cnt_3034,0) as wcnt7, coalesce(wman_flow_pop_cnt_3539,0) as wcnt8, 
+								coalesce(wman_flow_pop_cnt_4044,0) as wcnt9, coalesce(wman_flow_pop_cnt_4549,0) as wcnt10, coalesce(wman_flow_pop_cnt_5054,0) as wcnt11, 
+								coalesce(wman_flow_pop_cnt_5559,0) as wcnt12, coalesce(wman_flow_pop_cnt_6064,0) as wcnt13, coalesce(wman_flow_pop_cnt_6569,0) as wcnt14, 
+								coalesce(wman_flow_pop_cnt_70u,0) as wcnt15 
+							from ( ${dytbl} ) ipop 
+							where 1=1
+							]]>
+								<choose>
+			            			<when test="std == 'day'">
+					        			<if test="sday != null and sday != ''">
+					                		and std_ymd <![CDATA[>=]]> #{sday} 
+					                	</if>
+					                	<if test="eday != null and eday != ''">
+						        			and std_ymd <![CDATA[<=]]> #{eday}
+						        		</if>
+			            			</when>
+			            			<otherwise>
+			            				<if test="smonth != null and smonth != ''">
+					                		and std_ym <![CDATA[>=]]> #{smonth} 
+					                	</if>
+					                	<if test="emonth != null and emonth != ''">
+						        			and std_ym <![CDATA[<=]]> #{emonth}
+						        		</if>
+			            			</otherwise>
+			            		</choose>   
+					        	<choose>
+					        		<when test="atype == 'area'">
+					        			and block_cd in (select block_cd from skt_hs_small_block_a_area)
+					        		</when>
+					        		<otherwise>					        			
+					        			and block_cd in (select block_cd from skt_hs_small_block_a where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true)
+					        		</otherwise>
+					        	</choose>
+					        	<if test="range == 'in'">
+					        		and inflow_cd like '41590%'
+					        	</if>
+					        	<if test="range == 'out'">
+					        		and inflow_cd not like '41590%'
+					        	</if>
+						  <![CDATA[ 
+						)part1 
+						
+						group by inflow_cd					
+					)part2 
+					left join hm_tl_scco_ctprvn_a si on part2.inflow_cd = si.ctprvn_cd					
+				)part3
+	    		group by line, bpoint, hpoint, item
+	    )
+		select max(cnt) as cnt,  min(cnt) as min,  null as line, null as bpoint, null as hpoint, null as item from skt_hs_inflow_age_all 
+		union all
+		(select * from skt_hs_inflow_age_all order by cnt desc)
+		]]>
+	</select>
+	
+	
+	<!-- 시군구별 분석결과 -->
+	<select id="selectSigunIPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select 
+			case when div is null then '합계' else div end as div, 
+			case when div is null then 0 else rid end as rid, 
+			item, floor(sum(tot)) as tot
+		from(
+			select 
+					1 as rid,
+					case when sig.sig_kor_nm is null then '합계' else sig.sig_kor_nm end as div, 
+					inflow_cd as item, 
+					tot
+			from(
+				select  inflow_cd, 
+						sum(mcnt1+mcnt2+mcnt3+mcnt4+mcnt5+mcnt6+mcnt7+mcnt8+mcnt9+mcnt10+mcnt11+mcnt12+mcnt13+mcnt14+mcnt15+
+									wcnt1+wcnt2+wcnt3+wcnt4+wcnt5+wcnt6+wcnt7+wcnt8+wcnt9+wcnt10+wcnt11+wcnt12+wcnt13+wcnt14+wcnt15) as tot
+				from(
+					select inflow_cd,
+						coalesce(man_flow_pop_cnt_0004,0) as mcnt1, coalesce(man_flow_pop_cnt_0509,0) as mcnt2,
+						coalesce(man_flow_pop_cnt_1014,0) as mcnt3, coalesce(man_flow_pop_cnt_1519,0) as mcnt4,
+						coalesce(man_flow_pop_cnt_2024,0) as mcnt5, coalesce(man_flow_pop_cnt_2529,0) as mcnt6,
+						coalesce(man_flow_pop_cnt_3034,0) as mcnt7, coalesce(man_flow_pop_cnt_3539,0) as mcnt8,
+						coalesce(man_flow_pop_cnt_4044,0) as mcnt9, coalesce(man_flow_pop_cnt_4549,0) as mcnt10,
+						coalesce(man_flow_pop_cnt_5054,0) as mcnt11, coalesce(man_flow_pop_cnt_5559,0) as mcnt12,
+						coalesce(man_flow_pop_cnt_6064,0) as mcnt13, coalesce(man_flow_pop_cnt_6569,0) as mcnt14,
+						coalesce(man_flow_pop_cnt_70u,0) as mcnt15,
+						coalesce(wman_flow_pop_cnt_0004,0) as wcnt1, coalesce(wman_flow_pop_cnt_0509,0) as wcnt2,
+						coalesce(wman_flow_pop_cnt_1014,0) as wcnt3, coalesce(wman_flow_pop_cnt_1519,0) as wcnt4,
+						coalesce(wman_flow_pop_cnt_2024,0) as wcnt5, coalesce(wman_flow_pop_cnt_2529,0) as wcnt6,
+						coalesce(wman_flow_pop_cnt_3034,0) as wcnt7, coalesce(wman_flow_pop_cnt_3539,0) as wcnt8,
+						coalesce(wman_flow_pop_cnt_4044,0) as wcnt9, coalesce(wman_flow_pop_cnt_4549,0) as wcnt10,
+						coalesce(wman_flow_pop_cnt_5054,0) as wcnt11, coalesce(wman_flow_pop_cnt_5559,0) as wcnt12,
+						coalesce(wman_flow_pop_cnt_6064,0) as wcnt13, coalesce(wman_flow_pop_cnt_6569,0) as wcnt14,
+						coalesce(wman_flow_pop_cnt_70u,0) as wcnt15
+					from (  ${dytbl} ) ipop
+					where 1=1
+					]]>
+						<choose>
+	            			<when test="std == 'day'">
+			        			<if test="sday != null and sday != ''">
+			                		and std_ymd <![CDATA[>=]]> #{sday} 
+			                	</if>
+			                	<if test="eday != null and eday != ''">
+				        			and std_ymd <![CDATA[<=]]> #{eday}
+				        		</if>
+	            			</when>
+	            			<otherwise>
+	            				<if test="smonth != null and smonth != ''">
+			                		and std_ym <![CDATA[>=]]> #{smonth} 
+			                	</if>
+			                	<if test="emonth != null and emonth != ''">
+				        			and std_ym <![CDATA[<=]]> #{emonth}
+				        		</if>
+	            			</otherwise>
+	            		</choose>   
+			        	<choose>
+			        		<when test="atype == 'area'">
+			        			and block_cd in (select block_cd from skt_hs_small_block_a_area)
+			        		</when>
+			        		<otherwise>
+			        			and block_cd in (select block_cd from skt_hs_small_block_a where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true)
+			        		</otherwise>
+			        	</choose>
+			        	<if test="range == 'in'">
+			        		and inflow_cd like '41590%'
+			        	</if>
+			        	<if test="range == 'out'">
+			        		and inflow_cd not like '41590%'
+			        	</if>
+				    <![CDATA[	
+				)part1
+				group by inflow_cd	
+			)part2 left join  hm_tl_scco_sig_a sig
+			on part2.inflow_cd = sig.sig_cd
+		)part3
+		group by grouping sets((rid, div, item),())
+		order by rid desc, tot desc		
+		]]>
+	</select>
+	
+	<!-- 시군구별 geom area -->
+	<select id="selectSigunGeomList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		),
+		hm_bnd_dong_info AS(
+			select case when geom is null then null else ST_Centroid(ST_Transform(geom, 900913)) end as geom
+			from hm_bnd_adm_dong_pg_a 
+    		where gubun = #{gubun}  
+			AND adm_cd in (${dongcd})
+		),
+		skt_hs_inflow_age_all AS(
+				select floor(sum(cnt)) as cnt, 0 as min,
+					   case when bgeom is null then null else ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) end as line, 
+					   case when bgeom is null then null else ST_ASTEXT(bgeom) end bpoint, 
+					   case when hgeom is null then null else ST_ASTEXT(hgeom) end hpoint,
+					   signm as item
+				from(
+					select 
+						tot as cnt,
+						]]>
+		   			   		<choose>
+					        	<when test="atype == 'area'">					        		
+					        		(select geom from hm_bnd_dong_info) as hgeom,
+					        	</when>
+					        	<otherwise>
+					        		ST_Centroid(ST_Transform(
+					        			ST_Centroid(ST_GeomFromText('${area}', 4326))
+					        		, ${coord})) as hgeom,
+					        	</otherwise>
+					        </choose>
+		   			   <![CDATA[
+		   			   case when sig.geom is null then null else ST_Centroid(ST_Transform(sig.geom, ${coord})) end as bgeom,				   	    
+				   	   sig.sig_kor_nm as signm
+					from(
+					
+						select inflow_cd, sum(mcnt1+mcnt2+mcnt3+mcnt4+mcnt5+mcnt6+mcnt7+mcnt8+mcnt9+mcnt10+mcnt11+mcnt12+mcnt13+mcnt14+mcnt15+
+								wcnt1+wcnt2+wcnt3+wcnt4+wcnt5+wcnt6+wcnt7+wcnt8+wcnt9+wcnt10+wcnt11+wcnt12+wcnt13+wcnt14+wcnt15) as tot 
+						from( 
+							select inflow_cd,  block_cd,
+								coalesce(man_flow_pop_cnt_0004,0) as mcnt1, coalesce(man_flow_pop_cnt_0509,0) as mcnt2, coalesce(man_flow_pop_cnt_1014,0) as mcnt3, 
+								coalesce(man_flow_pop_cnt_1519,0) as mcnt4, coalesce(man_flow_pop_cnt_2024,0) as mcnt5, coalesce(man_flow_pop_cnt_2529,0) as mcnt6, coalesce(man_flow_pop_cnt_3034,0) as mcnt7, 
+								coalesce(man_flow_pop_cnt_3539,0) as mcnt8, coalesce(man_flow_pop_cnt_4044,0) as mcnt9, coalesce(man_flow_pop_cnt_4549,0) as mcnt10, coalesce(man_flow_pop_cnt_5054,0) as mcnt11, 
+								coalesce(man_flow_pop_cnt_5559,0) as mcnt12, coalesce(man_flow_pop_cnt_6064,0) as mcnt13, coalesce(man_flow_pop_cnt_6569,0) as mcnt14, coalesce(man_flow_pop_cnt_70u,0) as mcnt15, 
+								coalesce(wman_flow_pop_cnt_0004,0) as wcnt1, coalesce(wman_flow_pop_cnt_0509,0) as wcnt2, coalesce(wman_flow_pop_cnt_1014,0) as wcnt3, coalesce(wman_flow_pop_cnt_1519,0) as wcnt4,
+								coalesce(wman_flow_pop_cnt_2024,0) as wcnt5, coalesce(wman_flow_pop_cnt_2529,0) as wcnt6, coalesce(wman_flow_pop_cnt_3034,0) as wcnt7, coalesce(wman_flow_pop_cnt_3539,0) as wcnt8, 
+								coalesce(wman_flow_pop_cnt_4044,0) as wcnt9, coalesce(wman_flow_pop_cnt_4549,0) as wcnt10, coalesce(wman_flow_pop_cnt_5054,0) as wcnt11, 
+								coalesce(wman_flow_pop_cnt_5559,0) as wcnt12, coalesce(wman_flow_pop_cnt_6064,0) as wcnt13, coalesce(wman_flow_pop_cnt_6569,0) as wcnt14, 
+								coalesce(wman_flow_pop_cnt_70u,0) as wcnt15 
+							from ( ${dytbl} ) ipop 
+							where 1=1
+							]]>
+								<choose>
+			            			<when test="std == 'day'">
+					        			<if test="sday != null and sday != ''">
+					                		and std_ymd <![CDATA[>=]]> #{sday} 
+					                	</if>
+					                	<if test="eday != null and eday != ''">
+						        			and std_ymd <![CDATA[<=]]> #{eday}
+						        		</if>
+			            			</when>
+			            			<otherwise>
+			            				<if test="smonth != null and smonth != ''">
+					                		and std_ym <![CDATA[>=]]> #{smonth} 
+					                	</if>
+					                	<if test="emonth != null and emonth != ''">
+						        			and std_ym <![CDATA[<=]]> #{emonth}
+						        		</if>
+			            			</otherwise>
+			            		</choose>   
+					        	<choose>
+					        		<when test="atype == 'area'">
+					        			and block_cd in (select block_cd from skt_hs_small_block_a_area)
+					        		</when>
+					        		<otherwise>
+					        			and block_cd in (select block_cd from skt_hs_small_block_a where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true)
+					        		</otherwise>
+					        	</choose>
+					        	<if test="range == 'in'">
+					        		and inflow_cd like '41590%'
+					        	</if>
+					        	<if test="range == 'out'">
+					        		and inflow_cd not like '41590%'
+					        	</if>
+						  <![CDATA[ 
+						)part1  						
+						group by inflow_cd
+					
+					)part2 
+					left join hm_tl_scco_sig_a sig on part2.inflow_cd = sig.sig_cd					
+				)part3
+	    		group by line, bpoint, hpoint, item
+	    )
+		select max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint, null as item from skt_hs_inflow_age_all 
+		union all
+		(select * from skt_hs_inflow_age_all order by cnt desc)
+		]]>
+	</select>
+	
+	
+	
+	<!-- 성연령별 분석결과 -->
+	<select id="selectGAIPopList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		)
+		select 
+				case when div is null then '합계' else div end as div, 
+				case when div is null then 0 else rid end as rid, 
+				sum(m10) as m10, sum(m20) as m20, sum(m30) as m30, sum(m40) as m40, sum(m50) as m50, sum(m60) as m60, sum(m70) as m70,
+				sum(w10) as w10, sum(w20) as w20, sum(w30) as w30, sum(w40) as w40, sum(w50) as w50, sum(w60) as w60, sum(w70) as w70,
+				item, floor(sum(tot)) as tot
+			from(
+				select 
+						1 as rid,
+						sig.sig_kor_nm as div, 
+						m10, m20, m30, m40, m50, m60, m70,
+						w10, w20, w30, w40, w50, w60, w70,
+						inflow_cd as item, 
+						(
+							(case when m10 = -999 then 0 else m10 end ) +
+						  	(case when m20 = -999 then 0 else m20 end ) +
+						  	(case when m30 = -999 then 0 else m30 end ) +
+						  	(case when m40 = -999 then 0 else m40 end ) +
+						  	(case when m50 = -999 then 0 else m50 end ) +
+						  	(case when m60 = -999 then 0 else m60 end ) +
+						  	(case when m70 = -999 then 0 else m70 end ) +
+						  	(case when w10 = -999 then 0 else w10 end ) +
+						  	(case when w20 = -999 then 0 else w20 end ) +
+						  	(case when w30 = -999 then 0 else w30 end ) +
+						  	(case when w40 = -999 then 0 else w40 end ) +
+						  	(case when w50 = -999 then 0 else w50 end ) +
+						  	(case when w60 = -999 then 0 else w60 end ) +
+						  	(case when w70 = -999 then 0 else w70 end ) 
+						) as tot
+				from(
+					select 
+						  ]]>
+							<choose>
+								<when test="age.indexOf('1m') > -1">					
+									sum(mcnt3 + mcnt4) as m10,
+								</when><otherwise> -999 as m10,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('2m') > -1">					
+									sum(mcnt5 + mcnt6) as m20,
+								</when><otherwise> -999 as m20,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('3m') > -1">					
+									sum(mcnt7 + mcnt8) as m30,
+								</when><otherwise> -999 as m30,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('4m') > -1">					
+									sum(mcnt9 + mcnt10) as m40,
+								</when><otherwise> -999 as m40,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('5m') > -1">					
+									sum(mcnt11 + mcnt12) as m50,
+								</when><otherwise> -999 as m50,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('6m') > -1">					
+									sum(mcnt13 + mcnt14) as m60,
+								</when><otherwise> -999 as m60,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('7m') > -1">					
+									sum(mcnt15) as m70,
+								</when><otherwise> -999 as m70,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('1f') > -1">					
+									sum(wcnt3 + wcnt4) as w10,
+								</when><otherwise> -999 as w10,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('2f') > -1">					
+									sum(wcnt5 + wcnt6) as w20,
+								</when><otherwise> -999 as w20,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('3f') > -1">					
+									sum(wcnt7 + wcnt8) as w30,
+								</when><otherwise> -999 as w30,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('4f') > -1">					
+									sum(wcnt9 + wcnt10) as w40,
+								</when><otherwise> -999 as w40,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('5f') > -1">					
+									sum(wcnt11 + wcnt12) as w50,
+								</when><otherwise> -999 as w50,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('6f') > -1">					
+									sum(wcnt13 + wcnt14) as w60,
+								</when><otherwise> -999 as w60,</otherwise>
+							</choose>
+							<choose>
+								<when test="age.indexOf('7f') > -1">					
+									sum(wcnt15) as w70,
+								</when><otherwise> -999 as w70,</otherwise>
+							</choose> 
+							<![CDATA[
+						   inflow_cd
+					from(
+						select inflow_cd, 
+							coalesce(man_flow_pop_cnt_0004,0) as mcnt1, coalesce(man_flow_pop_cnt_0509,0) as mcnt2,
+							coalesce(man_flow_pop_cnt_1014,0) as mcnt3, coalesce(man_flow_pop_cnt_1519,0) as mcnt4,
+							coalesce(man_flow_pop_cnt_2024,0) as mcnt5, coalesce(man_flow_pop_cnt_2529,0) as mcnt6,
+							coalesce(man_flow_pop_cnt_3034,0) as mcnt7, coalesce(man_flow_pop_cnt_3539,0) as mcnt8,
+							coalesce(man_flow_pop_cnt_4044,0) as mcnt9, coalesce(man_flow_pop_cnt_4549,0) as mcnt10,
+							coalesce(man_flow_pop_cnt_5054,0) as mcnt11, coalesce(man_flow_pop_cnt_5559,0) as mcnt12,
+							coalesce(man_flow_pop_cnt_6064,0) as mcnt13, coalesce(man_flow_pop_cnt_6569,0) as mcnt14,
+							coalesce(man_flow_pop_cnt_70u,0) as mcnt15,
+							coalesce(wman_flow_pop_cnt_0004,0) as wcnt1, coalesce(wman_flow_pop_cnt_0509,0) as wcnt2,
+							coalesce(wman_flow_pop_cnt_1014,0) as wcnt3, coalesce(wman_flow_pop_cnt_1519,0) as wcnt4,
+							coalesce(wman_flow_pop_cnt_2024,0) as wcnt5, coalesce(wman_flow_pop_cnt_2529,0) as wcnt6,
+							coalesce(wman_flow_pop_cnt_3034,0) as wcnt7, coalesce(wman_flow_pop_cnt_3539,0) as wcnt8,
+							coalesce(wman_flow_pop_cnt_4044,0) as wcnt9, coalesce(wman_flow_pop_cnt_4549,0) as wcnt10,
+							coalesce(wman_flow_pop_cnt_5054,0) as wcnt11, coalesce(wman_flow_pop_cnt_5559,0) as wcnt12,
+							coalesce(wman_flow_pop_cnt_6064,0) as wcnt13, coalesce(wman_flow_pop_cnt_6569,0) as wcnt14,
+							coalesce(wman_flow_pop_cnt_70u,0) as wcnt15
+						from ( ${dytbl} ) ipop
+						where 1=1
+						]]>
+							<choose>
+		            			<when test="std == 'day'">
+				        			<if test="sday != null and sday != ''">
+				                		and std_ymd <![CDATA[>=]]> #{sday} 
+				                	</if>
+				                	<if test="eday != null and eday != ''">
+					        			and std_ymd <![CDATA[<=]]> #{eday}
+					        		</if>
+		            			</when>
+		            			<otherwise>
+		            				<if test="smonth != null and smonth != ''">
+				                		and std_ym <![CDATA[>=]]> #{smonth} 
+				                	</if>
+				                	<if test="emonth != null and emonth != ''">
+					        			and std_ym <![CDATA[<=]]> #{emonth}
+					        		</if>
+		            			</otherwise>
+		            		</choose>   
+				        	<choose>
+				        		<when test="atype == 'area'">
+				        			and block_cd in (select block_cd from skt_hs_small_block_a_area)
+				        		</when>
+				        		<otherwise>
+				        			and block_cd in (select block_cd from skt_hs_small_block_a where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true)
+				        		</otherwise>
+				        	</choose>	
+				        	<if test="range == 'in'">
+					        		and inflow_cd like '41590%'
+				        	</if>
+				        	<if test="range == 'out'">
+				        		and inflow_cd not like '41590%'
+				        	</if>			        	
+					  <![CDATA[
+					)part1
+					group by inflow_cd	
+				)part2 left join  hm_tl_scco_sig_a sig
+			on part2.inflow_cd = sig.sig_cd			
+			)part3
+			group by grouping sets((rid, div, item),())
+			order by rid desc, tot desc	
+		]]>
+	</select>
+	
+	<!-- 성연령별 geom area -->
+	<select id="selectGAGeomList" parameterType="popAnalsVO" resultType="egovMap">
+		<![CDATA[
+		WITH skt_hs_small_block_a_area AS 
+		(
+			select block_cd,  gubun, adm_cd as adong_cd, adm_nm as adong_nm, a.geom as geom
+			from skt_hs_small_block_a a,
+    				hm_bnd_adm_dong_pg_a b
+			where 1=1
+			and b.gubun = #{gubun}  
+			AND b.adm_cd in (${dongcd})
+			and st_intersects(a.geom,b.geom)
+		),
+		hm_bnd_dong_info AS(
+			select case when geom is null then null else ST_Centroid(ST_Transform(geom, 900913)) end as geom
+			from hm_bnd_adm_dong_pg_a 
+    		where gubun = #{gubun}  
+			AND adm_cd in (${dongcd})
+		),
+		skt_hs_inflow_age_all AS(
+				select floor(sum(cnt)) as cnt, 0 as min,
+					   case when bgeom is null then null else ST_ASTEXT(ST_MakeLine(bgeom, hgeom)) end as line, 
+					   case when bgeom is null then null else ST_ASTEXT(bgeom) end bpoint, 
+					   case when hgeom is null then null else ST_ASTEXT(hgeom) end hpoint,
+					   signm as item
+				from(
+					select 
+						(m10+m20+m30+m40+m50+m60+m70+w10+w20+w30+w40+w50+w60+w70) as cnt,
+						]]>
+		   			   		<choose>
+					        	<when test="atype == 'area'">					        		
+					        		(select geom from hm_bnd_dong_info) as hgeom,
+					        	</when>
+					        	<otherwise>
+					        		ST_Centroid(ST_Transform(
+					        			ST_Centroid(ST_GeomFromText('${area}', 4326))
+					        		, ${coord})) as hgeom,
+					        	</otherwise>
+					        </choose>
+		   			   <![CDATA[
+		   			   case when sig.geom is null then null else ST_Centroid(ST_Transform(sig.geom, ${coord})) end as bgeom,				   	    
+				   	   sig.sig_kor_nm as signm
+					from(
+					
+						select 
+							]]>
+								<choose>
+									<when test="age.indexOf('1m') > -1">					
+										sum(mcnt3 + mcnt4) as m10,
+									</when><otherwise> 0 as m10,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('2m') > -1">					
+										sum(mcnt5 + mcnt6) as m20,
+									</when><otherwise> 0 as m20,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('3m') > -1">					
+										sum(mcnt7 + mcnt8) as m30,
+									</when><otherwise> 0 as m30,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('4m') > -1">					
+										sum(mcnt9 + mcnt10) as m40,
+									</when><otherwise> 0 as m40,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('5m') > -1">					
+										sum(mcnt11 + mcnt12) as m50,
+									</when><otherwise> 0 as m50,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('6m') > -1">					
+										sum(mcnt13 + mcnt14) as m60,
+									</when><otherwise> 0 as m60,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('7m') > -1">					
+										sum(mcnt15) as m70,
+									</when><otherwise> 0 as m70,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('1f') > -1">					
+										sum(wcnt3 + wcnt4) as w10,
+									</when><otherwise> 0 as w10,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('2f') > -1">					
+										sum(wcnt5 + wcnt6) as w20,
+									</when><otherwise> 0 as w20,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('3f') > -1">					
+										sum(wcnt7 + wcnt8) as w30,
+									</when><otherwise> 0 as w30,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('4f') > -1">					
+										sum(wcnt9 + wcnt10) as w40,
+									</when><otherwise> 0 as w40,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('5f') > -1">					
+										sum(wcnt11 + wcnt12) as w50,
+									</when><otherwise> 0 as w50,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('6f') > -1">					
+										sum(wcnt13 + wcnt14) as w60,
+									</when><otherwise> 0 as w60,</otherwise>
+								</choose>
+								<choose>
+									<when test="age.indexOf('7f') > -1">					
+										sum(wcnt15) as w70,
+									</when><otherwise> 0 as w70,</otherwise>
+								</choose> 
+								<![CDATA[
+								inflow_cd
+						from( 
+							select inflow_cd,  block_cd,
+								coalesce(man_flow_pop_cnt_0004,0) as mcnt1, coalesce(man_flow_pop_cnt_0509,0) as mcnt2, coalesce(man_flow_pop_cnt_1014,0) as mcnt3, 
+								coalesce(man_flow_pop_cnt_1519,0) as mcnt4, coalesce(man_flow_pop_cnt_2024,0) as mcnt5, coalesce(man_flow_pop_cnt_2529,0) as mcnt6, coalesce(man_flow_pop_cnt_3034,0) as mcnt7, 
+								coalesce(man_flow_pop_cnt_3539,0) as mcnt8, coalesce(man_flow_pop_cnt_4044,0) as mcnt9, coalesce(man_flow_pop_cnt_4549,0) as mcnt10, coalesce(man_flow_pop_cnt_5054,0) as mcnt11, 
+								coalesce(man_flow_pop_cnt_5559,0) as mcnt12, coalesce(man_flow_pop_cnt_6064,0) as mcnt13, coalesce(man_flow_pop_cnt_6569,0) as mcnt14, coalesce(man_flow_pop_cnt_70u,0) as mcnt15, 
+								coalesce(wman_flow_pop_cnt_0004,0) as wcnt1, coalesce(wman_flow_pop_cnt_0509,0) as wcnt2, coalesce(wman_flow_pop_cnt_1014,0) as wcnt3, coalesce(wman_flow_pop_cnt_1519,0) as wcnt4,
+								coalesce(wman_flow_pop_cnt_2024,0) as wcnt5, coalesce(wman_flow_pop_cnt_2529,0) as wcnt6, coalesce(wman_flow_pop_cnt_3034,0) as wcnt7, coalesce(wman_flow_pop_cnt_3539,0) as wcnt8, 
+								coalesce(wman_flow_pop_cnt_4044,0) as wcnt9, coalesce(wman_flow_pop_cnt_4549,0) as wcnt10, coalesce(wman_flow_pop_cnt_5054,0) as wcnt11, 
+								coalesce(wman_flow_pop_cnt_5559,0) as wcnt12, coalesce(wman_flow_pop_cnt_6064,0) as wcnt13, coalesce(wman_flow_pop_cnt_6569,0) as wcnt14, 
+								coalesce(wman_flow_pop_cnt_70u,0) as wcnt15 
+							from ( ${dytbl} ) ipop 
+							where 1=1
+							]]>
+								<choose>
+			            			<when test="std == 'day'">
+					        			<if test="sday != null and sday != ''">
+					                		and std_ymd <![CDATA[>=]]> #{sday} 
+					                	</if>
+					                	<if test="eday != null and eday != ''">
+						        			and std_ymd <![CDATA[<=]]> #{eday}
+						        		</if>
+			            			</when>
+			            			<otherwise>
+			            				<if test="smonth != null and smonth != ''">
+					                		and std_ym <![CDATA[>=]]> #{smonth} 
+					                	</if>
+					                	<if test="emonth != null and emonth != ''">
+						        			and std_ym <![CDATA[<=]]> #{emonth}
+						        		</if>
+			            			</otherwise>
+			            		</choose>   
+					        	<choose>
+					        		<when test="atype == 'area'">
+					        			and block_cd in (select block_cd from skt_hs_small_block_a_area)
+					        		</when>
+					        		<otherwise>
+					        			and block_cd in (select block_cd from skt_hs_small_block_a where ST_Intersects(ST_GeomFromText('${area}', 4326), geom) = true)
+					        		</otherwise>
+					        	</choose>
+					        	<if test="range == 'in'">
+					        		and inflow_cd like '41590%'
+					        	</if>
+					        	<if test="range == 'out'">
+					        		and inflow_cd not like '41590%'
+					        	</if>
+						  <![CDATA[ 
+						)part1  						
+						group by inflow_cd					
+					)part2 
+					left join hm_tl_scco_sig_a sig on part2.inflow_cd = sig.sig_cd
+				)part3
+	    		group by line, bpoint, hpoint, item
+	    )
+		select max(cnt) as cnt, min(cnt) as min, null as line, null as bpoint, null as hpoint, null as item from skt_hs_inflow_age_all 
+		union all
+		(select * from skt_hs_inflow_age_all order by cnt desc)
+		]]>
+	</select>
+</mapper>

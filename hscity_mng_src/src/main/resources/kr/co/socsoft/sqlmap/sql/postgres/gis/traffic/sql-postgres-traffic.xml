@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.gis.traffic.service.TrafficAnalsDao">	
+	
+	<!-- 정류장 분석결과 -->
+	<select id="selectStaList" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+			SELECT sta_id as cid, sta_nm as cnm, 
+	   			st_astext(ST_Transform(ST_SetSRID(st_point(wgs_x, wgs_y),4326), ${coord})) as geom
+			FROM hst_code_sta_xy
+		]]>
+	</select>
+	
+	
+	<!-- 버스라인정보 -->
+	<select id="selectBusLine" parameterType="trafficAnalsVO" resultType="egovMap">
+		<![CDATA[
+		select *
+		from(
+			select 1 as rid, line_nm, bus_nm as div, bus_type, order_type as otype, base_ord,
+			        ${coord} as coord,
+			        base_sta_nm as bsnm, next_sta_nm as nsnm, base_sta_id as bsid, next_sta_id as nsid,
+					st_astext(ST_Transform(ST_SetSRID(st_point(base_wgs_x, base_wgs_y),4326), ${coord})) as bp,
+					st_astext(ST_Transform(ST_SetSRID(st_point(next_wgs_x, next_wgs_y),4326), ${coord})) as np,
+					st_astext(ST_Transform(ST_SetSRID(geom, 4326), ${coord})) as line
+			from hst_ana_busline_pline
+			where line_nm = #{lid}
+			and order_type = '상행'
+			union all	
+			select 2 as rid, line_nm, bus_nm, bus_type, order_type, base_ord,
+					${coord} as coord,
+			        base_sta_nm, next_sta_nm, base_sta_id, next_sta_id,
+					st_astext(ST_Transform(ST_SetSRID(st_point(base_wgs_x, base_wgs_y),4326), ${coord})) as bp,
+					st_astext(ST_Transform(ST_SetSRID(st_point(next_wgs_x, next_wgs_y),4326), ${coord})) as np,
+					st_astext(ST_Transform(ST_SetSRID(geom, 4326), ${coord})) as line
+			from hst_ana_busline_pline
+			where line_nm = #{lid}
+			and order_type = '하행'
+		)part1
+		order by rid asc, otype asc, (base_ord::numeric) asc
+		]]>
+	</select>	
+</mapper>

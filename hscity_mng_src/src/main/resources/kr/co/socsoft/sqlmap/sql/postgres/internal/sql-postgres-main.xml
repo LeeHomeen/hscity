@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.socsoft.internal.main.service.InMainDao">
+	
+	<select id="getMenuCategory" parameterType="map" resultType="MenuCategoryVO">
+	<!-- kr.co.socsoft.internal.main.service.InMainDao.getMenuCategory -->
+	with recursive category_menu as (
+		 select t.biz_category_cd as category_menu_cd
+		      , t.upper_biz_category_cd as upper_category_menu_cd
+		      , t.biz_category_nm::text as category_menu_nm
+		      , t.level
+		      , t.path
+		      , length(array_to_string(t.path,'')) as path_len
+		      , 'c' as gbn
+		      , ''::text as url
+		      , ''::text menu_gbn
+		      , false as cycle
+		      , t.sort_no
+		 from   v_hs_biz_category t
+		 where  t.biz_category_cd != 'IN00000000'
+		 union all
+		 select b.biz_menu_cd as category_menu_cd
+		      , b.biz_category_cd as upper_category_menu_cd
+		      , b.biz_menu_nm as category_menu_nm
+		      , c.level + 1 AS level
+		      , c.path || a.biz_menu_cd::text as path
+		      , length(array_to_string(c.path || b.biz_menu_cd::text,'')) as path_len
+		      , 'm' as gbn
+		      , b.biz_menu_url as url
+		      , b.biz_menu_type_scd as menu_gbn
+		      , b.biz_category_cd::text = any(c.path)
+		      , c.sort_no as sort_no
+		 from   (select biz_menu_cd 
+		         from   hs_menu_dept_user_map
+		         where  user_id = #{userId} -----------==> '사용자 아이디'
+		         and    dept_id = #{deptId} -----------==> '부서 아이디'
+		         union 
+		         select biz_menu_cd
+		         from   hs_menu_dept_map
+		         where  dept_id = #{deptId} -----------==> '부서 아이디'
+		         union
+		         select biz_menu_cd
+		         from   hs_biz_menu_mst
+		         where  use_yn = 'y'
+		         and    biz_menu_role_scd = 'std'
+		         ) a
+		        inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+		        inner join category_menu c on b.biz_category_cd = c.category_menu_cd and not cycle
+		), temp as (select category_menu.category_menu_cd
+		      , category_menu.category_menu_nm
+		      , category_menu.gbn
+		      , category_menu.level
+		      , category_menu.url
+		      , category_menu.path
+		      , category_menu.path_len
+              , category_menu.upper_category_menu_cd
+		 from   category_menu
+		 where  1 = 1
+		 and    category_menu.gbn = 'm')
+		select category_menu_cd, category_menu_nm, gbn,menu_gbn, level, url, upper_category_menu_cd
+		from   category_menu
+		where  array_to_string(category_menu.path, '') in (select substring(array_to_string(path, ''), 1, category_menu.path_len) from temp)
+        --and    category_menu.level = 3
+		order by category_menu.sort_no, category_menu.path;
+			<!-- kr.co.socsoft.internal.main.service.InMainDao.getMenuCategory -->
+		
+	</select>
+	
+	<select id="getMenuInfo" parameterType="map" resultType="MenuCategoryVO">
+				<!-- kr.co.socsoft.internal.main.service.InMainDao.getMenuInfo -->
+			select a.biz_menu_nm as menu_nm
+				, a.contents as contents
+				, b.file_nm as file_nm
+				, b.file_data as file_data
+				, (select count(1) from hs_user_fav_menu where user_id = #{userId} and biz_menu_cd = #{menuCd}) as fav_yn
+			 from hs_biz_menu_mst a 
+			 left join hs_biz_menu_att_file b on a.biz_menu_cd = b.biz_menu_cd 
+			 where a.biz_menu_cd = #{menuCd}
+				<!-- kr.co.socsoft.internal.main.service.InMainDao.getMenuInfo -->
+	</select>
+	
+	<select id="getSearchMenuCategory" parameterType="map" resultType="MenuCategoryVO">
+		select a.biz_menu_cd as menu_cd
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+		            when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+		            when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+		            else ''
+		       end category_nm_1st
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+		            when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+		            else ''
+		       end category_nm_2nd
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+		            else ''
+		       end category_nm_3rd
+		     , b.biz_menu_nm as menu_nm
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+	                when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+	                when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+	           end category_cd_1st
+	         , b.biz_menu_type_scd as menu_type_scd
+             , b.biz_menu_url as menu_url
+		from   (select biz_menu_cd 
+		        from   hs_menu_dept_user_map
+		        where  user_id = #{userId} -----------==> '사용자 아이디'
+		        union 
+		        select biz_menu_cd
+		        from   hs_menu_dept_map
+		        where  dept_id = #{deptId} -----------==> '부서 아이디'
+		        union
+		        select biz_menu_cd
+		        from   hs_biz_menu_mst
+		        where  use_yn = 'y'
+		        and    biz_menu_role_scd = 'std'
+		       ) a 
+		       inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+		       inner join hs_biz_menu_category c on b.biz_category_cd = c.biz_category_cd 
+		where  b.use_yn = 'y'
+		<if test="menuNm != null and menuNm != ''">
+		and    b.biz_menu_nm like '%' || #{menuNm} || '%'
+	    </if>
+	</select>
+
+	<select id="getMainImg" resultType="CategoryVo">
+			select 
+		  a.biz_menu_cd as menuCd
+		, a.biz_menu_img_use_yn as menuImgUseYn
+		, a.biz_main_loc_no as mainLocNo
+		, b.biz_menu_nm as menuNm
+		, b.biz_menu_img as menuImg
+		, b.biz_menu_url as menuUrl
+		, b.biz_menu_type_scd as menuTypeScd
+		, a.layout
+		from hs_biz_main_mng a inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+		where a.use_yn = 'y'
+		and a.biz_main_loc_no in(1,2,3,4)
+		order by a.biz_main_loc_no
+	
+	</select>
+	
+	<select id="getCheckPassYn" parameterType="map" resultType="int">
+		select count(1) 
+		from hs_user_mst
+		where user_id = #{userId}
+		and user_pwd = encode(#{userPw}::bytea, 'base64')::text
+	</select>
+	
+	<update id="setNewPassword" parameterType="map">
+		update hs_user_mst
+		set user_pwd = encode(#{userPwNew}::bytea, 'base64')::text,
+		update_id = #{userId},
+		update_dt = now()
+		where user_id = #{userId}
+	</update>
+	
+	<insert id="setFavPage" parameterType="map">
+		insert into hs_user_fav_menu
+		values
+		(#{userId}
+		,#{menuCd}
+		,#{userId}
+		,now()
+		,null
+		,null)
+	</insert>
+	
+	<select id="checkFavPage" parameterType="map" resultType="int">
+		select count(1) 
+		from hs_user_fav_menu
+		where user_id = #{userId}
+		and biz_menu_cd = #{menuCd}
+	</select>
+	
+	<delete id="removeFavPage" parameterType="map">
+		delete from hs_user_fav_menu
+		where user_id = #{userId}
+		and biz_menu_cd = #{menuCd}
+	</delete>
+	
+	<select id="getFavMenuList" parameterType="map" resultType="MenuCategoryVO">
+			select a.biz_menu_cd as menu_cd
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+		            when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+		            when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+		            else ''
+		       end category_nm_1st
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+		            when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+		            else ''
+		       end category_nm_2nd
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_nm from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+		            else ''
+		       end category_nm_3rd
+		     , b.biz_menu_nm as menu_nm
+		     , case when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 1 then (select biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)
+	                when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 2 then (select biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd))
+	                when (select level from v_hs_biz_category where biz_category_cd = b.biz_category_cd) = 3 then (select biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = (select upper_biz_category_cd from v_hs_biz_category where biz_category_cd = b.biz_category_cd)))
+	           end category_cd_1st
+	         , b.biz_menu_type_scd as menu_type_scd
+             , b.biz_menu_url as menu_url
+		from   (select biz_menu_cd 
+		        from   hs_menu_dept_user_map
+		        where  user_id = #{userId} -----------==> '사용자 아이디'
+		        union 
+		        select biz_menu_cd
+		        from   hs_menu_dept_map
+		        where  dept_id = #{deptId} -----------==> '부서 아이디'
+		        union
+		        select biz_menu_cd
+		        from   hs_biz_menu_mst
+		        where  use_yn = 'y'
+		        and    biz_menu_role_scd = 'std'
+		       ) a  
+		       inner join hs_biz_menu_mst b on a.biz_menu_cd = b.biz_menu_cd
+		       inner join hs_biz_menu_category c on b.biz_category_cd = c.biz_category_cd 
+		       inner join hs_user_fav_menu d on b.biz_menu_cd = d.biz_menu_cd and d.user_id = #{userId}
+		and    b.use_yn = 'y'
+	</select>
+	
+	<select id="getMainNotice" resultType="BoardVO">
+		select notice_seq as seq
+		, title 
+		, contents
+		 from hs_bbs_notice 
+		 where bbs_type_scd = 'biz'
+		 and use_yn = 'y'
+		 order by notice_seq desc 
+		 limit 1
+	</select>
+	
+	<select id="getHsPopulations" resultType="int">
+		select tot_popltn_co from hsp_mnby_sgg_popltn_stats where administzone_nm = '경기도 화성시'  order by year desc,mnby desc limit 1
+	</select>
+	
+	<select id="getAllPopulations" resultType="int">
+       select tot_popltn_co from hsp_mnby_gg_popltn_stats order by year desc,mnby desc limit 1
+	</select>
+	
+	<select id="getDataCount" resultType="int">
+	select count(*) from hs_data_table_info
+	</select>
+	
+	<select id="getLogCount" resultType="int">
+	 select count(*) from hs_user_conn_log
+	</select>
+	
+	<insert id="setBizUserLog" parameterType="map">
+	insert into hs_user_conn_log 
+	(user_id, conn_ip, conn_dt, conn_browser)
+	values (
+		#{userId},
+		#{ip},
+		now(),
+		#{browser}
+	)
+	</insert>
+	
+	<insert id="setBizMenuLog" parameterType="map">
+	insert into hs_biz_menu_log 
+	(biz_menu_cd ,user_id, conn_ip, conn_dt)
+	values (
+		#{menuCd},
+		#{userId},
+		#{ip},
+		now()
+	)
+	</insert>
+</mapper>
