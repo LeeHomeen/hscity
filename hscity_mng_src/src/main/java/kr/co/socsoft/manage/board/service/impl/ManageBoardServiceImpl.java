@@ -350,12 +350,52 @@ public class ManageBoardServiceImpl implements ManageBoardService {
         return mapper.selectThinkBoardList(boardVO);
     }
     /* 생각의 탄생 끝 */
+    @Override
+    public int deleteleehomeenBoard(BoardVO boardVO) {
+        return mapper.deleteleehomeenBoard(boardVO);
+    }
 
-	@Override
-	public List<String> selectHominNew() throws Exception {
-		// TODO Auto-generated method stubselectNoticeBoardList
-		return mapper.selectHominNew();
-	}
-	
+    @Override
+    public BoardVO selectleehomeenBoard(BoardVO boardVO) {
+        return mapper.selectleehomeenBoard(boardVO);
+    }
+
+    @Override
+    public int updateleehomeenBoard(BoardVO boardVO) throws Exception {
+        String attFileMngSeq = fileKeyInsert(boardVO);
+        BbsAttFileVO fileVO = new BbsAttFileVO();
+        fileVO.setAttFileMngSeq(attFileMngSeq);
+
+        insertFile(boardVO, fileVO); // 파일 추가
+        deleteFile(boardVO, fileVO); // 파일 삭제
+        return mapper.updateleehomeenBoard(boardVO);
+    }
+
+
+    @Override
+    public int insertleehomeenBoard(BoardVO boardVO) throws Exception {
+        String attFileMngSeq = fileIdGnrService.getNextStringId();
+        BbsAttFileMngVO bbsAttFileMngVO = new BbsAttFileMngVO();
+        bbsAttFileMngVO.setAttFileMngSeq(attFileMngSeq);
+        int cnt = fileService.insertBbsAttFileMng(bbsAttFileMngVO);
+
+        BbsAttFileVO fileVO = new BbsAttFileVO();
+        fileVO.setAttFileMngSeq(attFileMngSeq);
+
+        insertFile(boardVO, fileVO);
+
+        boardVO.setAttFileMngSeq(attFileMngSeq);
+        return mapper.insertleehomeenBoard(boardVO);
+    }
+
+    @Override
+    public int selectleehomeenBoardListToCnt(BoardVO boardVO) {
+        return mapper.selectleehomeenBoardListToCnt(boardVO);
+    }
+
+    @Override
+    public List<BoardVO> selectleehomeenBoardList(BoardVO boardVO) {
+        return mapper.selectleehomeenBoardList(boardVO);
+    }
 
 }

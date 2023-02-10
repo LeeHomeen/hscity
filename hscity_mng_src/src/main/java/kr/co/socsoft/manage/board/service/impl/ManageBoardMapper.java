@@ -88,7 +88,18 @@ public interface ManageBoardMapper {
     int deleteThinkBoard(BoardVO boardVO);
     /* 생각의 탄생 끝 */
     
-    List<String> selectHominNew();
+    List<BoardVO> selectleehomeenBoardList(BoardVO boardVO);
+
+    int selectleehomeenBoardListToCnt(BoardVO boardVO);
+
+    BoardVO selectleehomeenBoard(BoardVO boardVO);
+
+    int updateleehomeenBoard(BoardVO boardVO);
+
+    int insertleehomeenBoard(BoardVO boardVO);
+
+    int deleteleehomeenBoard(BoardVO boardVO);
+
     
     
 }

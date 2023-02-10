@@ -70,7 +70,7 @@
             <li class="${menu == 'qa' ? 'on' : '' }"><a href="<c:url value="/admin/board/qa/list.do"/>"><i class="fa fa-check" aria-hidden="true"></i>Q&A</a></li>
             <li class="${menu == 'think' ? 'on' : '' }"><a href="<c:url value="/admin/board/think/list.do"/>"><i class="fa fa-check" aria-hidden="true"></i>생각의 탄생</a></li>
             <li class="${menu == 'dataManegement' ? 'on' : '' }"><a href="<c:url value="/admin/board/dataManegement/list.do"/>"><i class="fa fa-check" aria-hidden="true"></i>데이터도움말(자료관리)</a></li>
-            <li class="${menu == 'homeen' ? 'on' : '' }"><a href="<c:url value="/admin/board/homeen/list.do"/>"><i class="fa fa-check" aria-hidden="true"></i>이호민 </a></li>
+            <li class="${menu == 'homeen' ? 'on' : '' }"><a href="<c:url value="/admin/board/leehomeen/list.do"/>"><i class="fa fa-check" aria-hidden="true"></i>이호민 </a></li>
         </ul>
     </c:if>
     <!-- //2depth 메뉴 -->
